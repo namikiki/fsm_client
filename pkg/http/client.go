@@ -10,11 +10,9 @@ import (
 	"time"
 
 	"fsm_client/pkg/types"
-
-	"github.com/gorilla/websocket"
 )
 
-func NewCustomHttpClient(jwt, client string) *http.Client {
+func NewHttpClient(jwt, client string) *http.Client {
 	return &http.Client{
 		Transport: MyRoundTripper{r: http.DefaultTransport, JWT: jwt, Client: client},
 		Timeout:   time.Second * 20,
@@ -52,15 +50,18 @@ func NewClient(bus, wsu string, conf *types.Config) *Client { // todo
 	}
 }
 
-func (c *Client) deserialization(r *http.Request) (interface{}, error) {
+func (c *Client) deserialization(method string, url string, d interface{}) ([]byte, error) {
+	marshal, _ := json.Marshal(d)
 
-	resp, err := c.H.Do(r)
+	request, _ := http.NewRequest(method, c.BSU+url, bytes.NewBuffer(marshal))
+	resp, err := c.H.Do(request)
 	if err != nil {
 		return nil, err
 	}
 
 	var res types.ApiResult
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		log.Println("aaaaaaaaaa", err)
 		return nil, err
 	}
 
@@ -72,39 +73,6 @@ func (c *Client) deserialization(r *http.Request) (interface{}, error) {
 
 }
 
-func (c *Client) Register(user types.UserRegister) {
-	marshal, _ := json.Marshal(user)
-	resp, err := http.Post(c.BSU+"/register", "application/json", bytes.NewBuffer(marshal))
-	if err != nil {
-		log.Println(err)
-	}
-	all, _ := io.ReadAll(resp.Body)
-	log.Println(string(all))
-}
-
-func (c *Client) Login(user types.UserLoginReq) error {
-	marshal, _ := json.Marshal(user)
-
-	resp, err := http.Post(c.BSU+"/login", "application/json", bytes.NewBuffer(marshal))
-	if err != nil {
-		return err
-	}
-
-	var res types.ApiResult
-	json.NewDecoder(resp.Body).Decode(&res)
-
-	c.UserID = res.Data.UserID
-	c.H = NewCustomHttpClient(res.Data.Token, c.Conf.Device.ClientID)
-
-	log.Println(res.Data.UserID)
-	return err
-
-}
-
-func (c *Client) LoginOut() {
-
-}
-
 func (c *Client) TestClient() {
 	resp, err := c.H.Get(c.BSU + "/test")
 	if err != nil {
@@ -113,18 +81,4 @@ func (c *Client) TestClient() {
 
 	all, _ := io.ReadAll(resp.Body)
 	log.Println(string(all))
-}
-
-func (c *Client) WebSocketConnect(clientID string) (*websocket.Conn, error) {
-	// 使用 HTTP 客户端与 WebSocket 服务器建立连接
-	dial, _, err := websocket.DefaultDialer.Dial(c.WSU, nil)
-	return dial, err
-}
-
-func (c *Client) CreateDir() {
-
-}
-
-func (c *Client) DeleteDir() {
-
 }

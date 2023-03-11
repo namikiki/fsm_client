@@ -1,0 +1,62 @@
+package config
+
+import (
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"runtime"
+
+	"fsm_client/pkg/types"
+
+	"github.com/BurntSushi/toml"
+	"github.com/google/uuid"
+)
+
+const (
+	Application   = "fsm"
+	DefaultConfig = "[Device]\nClientID = \"%s\"\n" +
+		"Platform = \"%s\"\n"
+)
+
+func ReadConfigFile() (*types.Config, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return nil, err
+	}
+
+	var cf types.Config
+	if _, err := toml.DecodeFile(filepath.Join(dir, Application, "config"), &cf); err != nil {
+		panic(err)
+	}
+
+	return &cf, nil
+}
+
+func WriteDefaultConfig() {
+
+}
+
+func WriteConfigToFile() error {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(filepath.Join(dir, Application, "config"), os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(fmt.Sprintf(DefaultConfig, GenerateClientID(), GetPlatformType()))
+	return err
+}
+
+func GenerateClientID() string {
+	return uuid.NewString()
+}
+
+func GetPlatformType() string {
+	return runtime.GOOS
+}
