@@ -70,7 +70,7 @@ func (s *Syncer) ScannerDirToUploadCloud(rooPath, syncID string) error {
 
 }
 
-func (s *Syncer) GetSyncTaskToDownload(syncID string) error {
+func (s *Syncer) GetSyncTaskToDownload(syncID, path string) error {
 
 	dirs, err := s.GetAllDirBySyncID(syncID)
 	if err != nil {
@@ -78,7 +78,7 @@ func (s *Syncer) GetSyncTaskToDownload(syncID string) error {
 	}
 
 	for i := range dirs {
-		if err := os.MkdirAll(dirs[i].Dir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(path+dirs[i].Dir, os.ModePerm); err != nil {
 			if !os.IsExist(err) {
 				log.Println(err)
 				return err
@@ -97,7 +97,7 @@ func (s *Syncer) GetSyncTaskToDownload(syncID string) error {
 		if fileio, err := s.GetFile(files[i].ID); err == nil {
 			var dir ent.Dir
 			s.db.Where("id = ?", files[i].ParentDirID).Find(&dir)
-			if file, err := os.Create(dir.Dir + files[i].Name); err == nil {
+			if file, err := os.Create(path + dir.Dir + files[i].Name); err == nil {
 				io.Copy(file, fileio)
 				file.Close()
 			}

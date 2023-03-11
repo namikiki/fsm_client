@@ -64,7 +64,7 @@ func (s *Syncer) GetFile(fileID string) (io.ReadCloser, error) {
 }
 
 func (s *Syncer) GetAllDirBySyncID(syncID string) ([]ent.Dir, error) {
-	request, _ := http.NewRequest("GET", base_url+"/dir/getAllDirBySyncID", nil)
+	request, _ := http.NewRequest("GET", base_url+"/dir/getAllDirBySyncID/"+syncID, nil)
 	request.Header.Set("Content-Type", "application/json")
 
 	var dirs []ent.Dir
@@ -77,7 +77,7 @@ func (s *Syncer) GetAllDirBySyncID(syncID string) ([]ent.Dir, error) {
 
 func (s *Syncer) GetAllFileBySyncID(syncID string) ([]ent.File, error) {
 
-	request, _ := http.NewRequest("GET", base_url+"/file/get/all/bySyncID", nil)
+	request, _ := http.NewRequest("GET", base_url+"/file/get/all/bySyncID/"+syncID, nil)
 	request.Header.Set("Content-Type", "application/json")
 
 	var files []ent.File
