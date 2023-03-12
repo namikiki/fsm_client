@@ -16,7 +16,9 @@ import (
 const (
 	Application   = "fsm"
 	DefaultConfig = "[Device]\nClientID = \"%s\"\n" +
-		"Platform = \"%s\"\n"
+		"Platform = \"%s\"\n" +
+		"[Server]\nBaseUrl = \"%s\"\n" +
+		"WebSocketUrl = \"%s\"\n"
 )
 
 func ReadConfigFile() (*types.Config, error) {
@@ -25,12 +27,32 @@ func ReadConfigFile() (*types.Config, error) {
 		return nil, err
 	}
 
+	configPath := filepath.Join(dir, Application, "config")
+	_, err = os.Stat(configPath)
+	if os.IsNotExist(err) {
+		log.Println("配置文件不存在，正在生成默认配置")
+		if err := WriteConfigToFile(); err != nil {
+			return nil, err
+		}
+	}
+
 	var cf types.Config
-	if _, err := toml.DecodeFile(filepath.Join(dir, Application, "config"), &cf); err != nil {
+	if _, err := toml.DecodeFile(configPath, &cf); err != nil {
 		panic(err)
 	}
 
 	return &cf, nil
+}
+
+func DeleteConfig() error {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+
+	configPath := filepath.Join(dir, Application, "config")
+	return os.Remove(configPath)
+
 }
 
 func WriteDefaultConfig() {
@@ -49,7 +71,13 @@ func WriteConfigToFile() error {
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(fmt.Sprintf(DefaultConfig, GenerateClientID(), GetPlatformType()))
+	_, err = file.WriteString(fmt.Sprintf(DefaultConfig,
+		GenerateClientID(),
+		GetPlatformType(),
+		"http://127.0.0.1:8080",
+		"ws://127.0.0.1:8080",
+	))
+
 	return err
 }
 

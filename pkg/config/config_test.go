@@ -26,3 +26,10 @@ func TestReadConfigFile(t *testing.T) {
 	_, _ = ReadConfigFile()
 
 }
+
+func TestDeleteConfig(t *testing.T) {
+	err := DeleteConfig()
+	if err != nil {
+		log.Println(err)
+	}
+}

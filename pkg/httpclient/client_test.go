@@ -1,11 +1,12 @@
-package http
+package httpclient
 
 import (
 	"testing"
 )
 
 func TestA(t *testing.T) {
-
+	client := Init()
+	client.TestClient()
 	//client := NewClient("http://127.0.0.1:8080", "ws://127.0.0.1:8080")
 
 	//user := types.UserRegister{

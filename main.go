@@ -2,32 +2,30 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"fsm_client/pkg/config"
-	"fsm_client/pkg/http"
+	"fsm_client/pkg/database"
+	"fsm_client/pkg/handle"
+	"fsm_client/pkg/httpclient"
 	"fsm_client/pkg/mock"
+	"fsm_client/pkg/sync"
+
+	"github.com/google/uuid"
 )
 
 func main() {
 
-	cfg, _ := config.ReadConfigFile()
-	client := http.NewClient("http://127.0.0.1:8080", "ws://127.0.0.1:8080ß", cfg)
-
-	account := mock.NewAccount()
-	if err := client.Login(account); err != nil {
-		log.Println(err)
+	if os.Args[1] == "mas" {
+		master()
+	} else {
+		sla()
 	}
 
-	dir := mock.NewDir()
-	if err := client.DirCreate(&dir); err != nil {
-		log.Println(err)
-	}
-
-	if err := client.DirDelete(dir); err != nil {
-		log.Println(err)
-	}
-
-	log.Println(dir)
+	//err := syncer.RestoreSyncTask("820eb8bd-82b6-4891-aaba-6c93bc96a947", "/Users/zylzyl/go/src/fsm_client/test/filetest")
+	//if err != nil {
+	//	log.Println(err)
+	//}
 
 	//go syncer.WebSocketConn()
 	//
@@ -35,11 +33,79 @@ func main() {
 	//if err != nil {
 	//	log.Println(err)
 	//}
-
 	//err := syncer.CreateSync("filetest", "/Users/zylzyl/Desktop/GolangProjects/fsm/test/filetest")
 	//if err != nil {
 	//	log.Println(err)
 	//}
 	//
 	//select {}
+}
+
+func master() {
+	cfg, _ := config.ReadConfigFile()
+	log.Println(cfg)
+
+	cfg.Device.ClientID = uuid.NewString()
+	client := httpclient.NewClient(cfg)
+	//regis := mock.NewRegis()
+	//if err := client.Register(regis); err != nil {
+	//	log.Println(err)
+	//}
+
+	account := mock.NewAccount()
+	if err := client.Login(account); err != nil {
+		log.Println(err)
+	}
+
+	gormCon := database.NewGormSQLiteConnect()
+	hand := handle.NewHandle(client, gormCon)
+	syncer := sync.NewSyncer(client, gormCon, hand)
+
+	go func() {
+		err := syncer.ListenCloudDataChanges()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	err := syncer.CreateSyncTask("syncTest", "/Users/zylzyl/Desktop/GolangProjects/fsm/filetest")
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func sla() {
+
+	cfg, _ := config.ReadConfigFile()
+	log.Println(cfg)
+
+	cfg.Device.ClientID = uuid.NewString()
+	client := httpclient.NewClient(cfg)
+	//regis := mock.NewRegis()
+	//if err := client.Register(regis); err != nil {
+	//	log.Println(err)
+	//}
+
+	account := mock.NewAccount()
+	if err := client.Login(account); err != nil {
+		log.Println(err)
+	}
+
+	gormCon := database.NewGormSQLiteConnect()
+	hand := handle.NewHandle(client, gormCon)
+	syncer := sync.NewSyncer(client, gormCon, hand)
+
+	go func() {
+		err := syncer.ListenCloudDataChanges()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	select {}
+
+	err := syncer.CreateSyncTask("syncTest", "/Users/zylzyl/Desktop/GolangProjects/fsm/filetest")
+	if err != nil {
+		log.Println(err)
+	}
 }

@@ -1,4 +1,4 @@
-package http
+package httpclient
 
 import (
 	"encoding/json"
@@ -12,10 +12,20 @@ func (c *Client) DirCreate(dir *ent.Dir) error {
 		return err
 	}
 
-	return json.Unmarshal(res, &dir)
+	return json.Unmarshal(res, dir)
 }
 
 func (c *Client) DirDelete(dir ent.Dir) error {
 	_, err := c.deserialization("GET", "/dir/delete", dir)
 	return err
+}
+
+func (c *Client) GetAllDirBySyncID(syncID string) ([]ent.Dir, error) {
+	var dirs []ent.Dir
+	res, err := c.deserialization("GET", "/dir/getAllDirBySyncID/"+syncID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return dirs, json.Unmarshal(res, &dirs)
 }

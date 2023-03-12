@@ -1,99 +1,196 @@
 package sync
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
-	"net/http"
+	"log"
+	"os"
+	"path/filepath"
+	"time"
 
 	"fsm_client/pkg/ent"
+	"fsm_client/pkg/handle"
+	"fsm_client/pkg/httpclient"
+	"fsm_client/pkg/types"
 
-	"github.com/google/go-querystring/query"
 	"gorm.io/gorm"
 )
 
-const base_url = "http://127.0.0.1:8080"
-
 type Syncer struct {
-	httpClient *http.Client //http client
-	db         *gorm.DB
-	clientID   string
+	httpClient *httpclient.Client //http client
+	DB         *gorm.DB
+	Handle     *handle.Handle
+	SyncTask   map[string]string
 }
 
-func NewSyncer(client *http.Client, db *gorm.DB, clientID string) *Syncer {
+func NewSyncer(client *httpclient.Client, db *gorm.DB, handle *handle.Handle) *Syncer {
+	// todo  init SyncTask
+	synctask := make(map[string]string)
+
 	return &Syncer{
 		httpClient: client,
-		db:         db,
-		clientID:   clientID,
+		DB:         db,
+		Handle:     handle,
+		SyncTask:   synctask,
 	}
 }
 
-func (s *Syncer) CreateDir(dir *ent.Dir) error {
-	marshal, _ := json.Marshal(dir)
-
-	request, _ := http.NewRequest("POST", base_url+"/dir/create", bytes.NewBuffer(marshal))
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("client", s.clientID)
-
-	if resp, err := s.httpClient.Do(request); err == nil {
-		return json.NewDecoder(resp.Body).Decode(&dir)
+func (s *Syncer) ListenCloudDataChanges() error {
+	connect, err := s.httpClient.WebSocketConnect()
+	if err != nil {
+		panic(err)
 	}
-	return nil
-}
 
-func (s *Syncer) CreateFile(file *ent.File, fileio io.ReadCloser) error {
-	defer fileio.Close()
-	values, _ := query.Values(file)
+	for {
+		messageType, receivedMessage, err := connect.ReadMessage()
+		if err != nil {
+			log.Fatal("接收消息失败：", err)
+		}
 
-	request, _ := http.NewRequest("POST", base_url+"/file/create?"+values.Encode(), fileio)
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("client", s.clientID)
+		var psm types.PubSubMessage
+		if err := json.Unmarshal(receivedMessage, &psm); err != nil {
+			log.Println(err)
+		}
 
-	if resp, err := s.httpClient.Do(request); err == nil {
-		return json.NewDecoder(resp.Body).Decode(file)
+		if psm.ClientID == s.httpClient.ClientID {
+			continue
+		}
+
+		switch psm.Type {
+		case "file":
+			switch psm.Action {
+			case "create":
+				var file ent.File
+				json.Unmarshal(psm.Data, &file)
+				fileIO, err := s.httpClient.GetFile(file.ID)
+				if err != nil {
+					return err
+				}
+				var dir ent.Dir
+				s.DB.Where("id = ?", file.ParentDirID).Find(&dir)
+				f, err := os.Create(filepath.Join(dir.Dir, file.Name))
+				if err != nil {
+					return err
+				}
+
+				io.Copy(f, fileIO)
+				f.Close()
+				fileIO.Close()
+
+			case "delete":
+			case "update":
+
+			}
+		case "dir":
+			var dir ent.Dir
+			json.Unmarshal(psm.Data, &dir)
+			if psm.Action == "create" {
+				s.Handle.DirCreate(psm.Data, s.SyncTask[dir.SyncID])
+				continue
+			}
+			s.Handle.DirDelete(psm.Data, s.SyncTask[dir.SyncID])
+
+		case "synctask":
+			if psm.Action == "create" {
+				s.Handle.SyncTaskCreate(psm.Data)
+				continue
+			}
+			s.Handle.SyncTaskDelete(psm.Data)
+		default:
+			log.Println(psm)
+		}
+
+		log.Printf("接收到的消息类型：%d \n msg %v", messageType, psm)
+
+		//fmt.Printf()
+		//fmt.Printf("接收到的消息内容：%s\n", string(receivedMessage))
 	}
-	return nil
 }
 
-func (s *Syncer) GetFile(fileID string) (io.ReadCloser, error) {
-	request, _ := http.NewRequest("GET", base_url+"/file/open/"+fileID, nil)
-	request.Header.Set("Content-Type", "application/json")
+func (s *Syncer) CreateSyncTask(name, root string) error {
 
-	resp, err := s.httpClient.Do(request)
-	return resp.Body, err
-}
-
-func (s *Syncer) GetAllDirBySyncID(syncID string) ([]ent.Dir, error) {
-	request, _ := http.NewRequest("GET", base_url+"/dir/getAllDirBySyncID/"+syncID, nil)
-	request.Header.Set("Content-Type", "application/json")
-
-	var dirs []ent.Dir
-	if resp, err := s.httpClient.Do(request); err == nil {
-
-		return dirs, json.NewDecoder(resp.Body).Decode(&dirs)
+	task := ent.SyncTask{
+		Type:       "two",
+		Name:       name,
+		RootDir:    root,
+		Deleted:    false,
+		CreateTime: time.Now(),
 	}
-	return nil, nil
-}
 
-func (s *Syncer) GetAllFileBySyncID(syncID string) ([]ent.File, error) {
-
-	request, _ := http.NewRequest("GET", base_url+"/file/get/all/bySyncID/"+syncID, nil)
-	request.Header.Set("Content-Type", "application/json")
-
-	var files []ent.File
-	if resp, err := s.httpClient.Do(request); err == nil {
-		return files, json.NewDecoder(resp.Body).Decode(&files)
+	if err := s.httpClient.SyncTaskCreate(&task); err != nil {
+		return err
 	}
-	return nil, nil
+	s.DB.Create(&task)
+
+	return s.Handle.ScannerPathToUpload(task.RootDir, task.ID)
 }
 
-func (s *Syncer) CreateSyncTask(task *ent.SyncTask) error {
-	marshal, _ := json.Marshal(task)
-	request, _ := http.NewRequest("POST", base_url+"/synctask/create", bytes.NewBuffer(marshal))
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("client", s.clientID)
-	if resp, err := s.httpClient.Do(request); err == nil {
-		return json.NewDecoder(resp.Body).Decode(&task)
+func (s *Syncer) RestoreSyncTask(taskID, path string) error {
+	//todo 更改同步任务状态
+	err := s.Handle.GetSyncTaskToDownload(taskID, path)
+	if err != nil {
+		return err
 	}
-	return nil
+
+	//todo 开启数据变化DIR监视
+	return err
 }
+
+func (s *Syncer) PauseSyncTask() {
+
+}
+
+func (s *Syncer) ContinuePause() {
+
+}
+
+//func (s *Syncer) GetFile(fileID string) (io.ReadCloser, error) {
+//	request, _ := http.NewRequest("GET", baseUrl+"/file/open/"+fileID, nil)
+//	request.Header.Set("Content-Type", "application/json")
+//
+//	resp, err := s.httpClient.Do(request)
+//	return resp.Body, err
+//}
+//
+//func (s *Syncer) GetAllDirBySyncID(syncID string) ([]ent.Dir, error) {
+//	request, _ := http.NewRequest("GET", baseUrl+"/dir/getAllDirBySyncID/"+syncID, nil)
+//	request.Header.Set("Content-Type", "application/json")
+//
+//	var dirs []ent.Dir
+//	if resp, err := s.httpClient.Do(request); err == nil {
+//
+//		return dirs, json.NewDecoder(resp.Body).Decode(&dirs)
+//	}
+//	return nil, nil
+//}
+//
+//func (s *Syncer) GetAllFileBySyncID(syncID string) ([]ent.File, error) {
+//
+//	request, _ := http.NewRequest("GET", baseUrl+"/file/get/all/bySyncID/"+syncID, nil)
+//	request.Header.Set("Content-Type", "application/json")
+//
+//	var files []ent.File
+//	if resp, err := s.httpClient.Do(request); err == nil {
+//		return files, json.NewDecoder(resp.Body).Decode(&files)
+//	}
+//	return nil, nil
+//}
+//
+//func (s *Syncer) CreateSyncTask(task *ent.SyncTask) error {
+//	marshal, _ := json.Marshal(task)
+//	request, _ := http.NewRequest("POST", baseUrl+"/synctask/create", bytes.NewBuffer(marshal))
+//	request.Header.Set("Content-Type", "application/json")
+//	request.Header.Set("client", s.clientID)
+//	if resp, err := s.httpClient.Do(request); err == nil {
+//		return json.NewDecoder(resp.Body).Decode(&task)
+//	}
+//	return nil
+//}
+//
+//func (s *Syncer) CreateDir(e *ent.Dir) error {
+//	return nil
+//}
+//
+//func (s *Syncer) CreateFile(e *ent.File, open *os.File) error {
+//	return nil
+//}

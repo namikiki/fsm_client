@@ -1,4 +1,4 @@
-package http
+package httpclient
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"fsm_client/pkg/types"
 )
 
-func NewHttpClient(jwt, client string) *http.Client {
+func newHttpClient(jwt, client string) *http.Client {
 	return &http.Client{
 		Transport: MyRoundTripper{r: http.DefaultTransport, JWT: jwt, Client: client},
 		Timeout:   time.Second * 20,
@@ -27,41 +27,43 @@ type MyRoundTripper struct {
 
 func (mrt MyRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	r.Header.Add("authorization", mrt.JWT)
-	r.Header.Add("client", mrt.Client)
+	r.Header.Add("clientID", mrt.Client)
 	return mrt.r.RoundTrip(r)
 }
 
 type Client struct {
-	Conf   *types.Config
-	H      *http.Client
-	DL     map[string]struct{}
-	BSU    string // base URL
-	WSU    string // ws URL
-	UserID string
+	Conf         *types.Config
+	HttpClient   *http.Client
+	DL           map[string]struct{}
+	BaseUrl      string // base URL
+	WebsocketUrl string // ws URL
+	UserID       string
+	ClientID     string
+	JWT          string
 }
 
-func NewClient(bus, wsu string, conf *types.Config) *Client { // todo
+func NewClient(conf *types.Config) *Client { // todo
 	return &Client{
-		H:    nil,
-		DL:   map[string]struct{}{},
-		BSU:  bus,
-		WSU:  wsu,
-		Conf: conf,
+		HttpClient:   nil,
+		DL:           map[string]struct{}{},
+		BaseUrl:      conf.Server.BaseUrl,
+		WebsocketUrl: conf.Server.WebSocketUrl,
+		Conf:         conf,
+		ClientID:     conf.Device.ClientID,
 	}
 }
 
 func (c *Client) deserialization(method string, url string, d interface{}) ([]byte, error) {
 	marshal, _ := json.Marshal(d)
 
-	request, _ := http.NewRequest(method, c.BSU+url, bytes.NewBuffer(marshal))
-	resp, err := c.H.Do(request)
+	request, _ := http.NewRequest(method, c.BaseUrl+url, bytes.NewBuffer(marshal))
+	resp, err := c.HttpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}
 
 	var res types.ApiResult
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		log.Println("aaaaaaaaaa", err)
 		return nil, err
 	}
 
@@ -74,7 +76,7 @@ func (c *Client) deserialization(method string, url string, d interface{}) ([]by
 }
 
 func (c *Client) TestClient() {
-	resp, err := c.H.Get(c.BSU + "/test")
+	resp, err := c.HttpClient.Get(c.BaseUrl + "/test")
 	if err != nil {
 		log.Println(err)
 	}
