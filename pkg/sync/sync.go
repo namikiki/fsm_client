@@ -2,10 +2,7 @@ package sync
 
 import (
 	"encoding/json"
-	"io"
 	"log"
-	"os"
-	"path/filepath"
 	"time"
 
 	"fsm_client/pkg/ent"
@@ -58,29 +55,18 @@ func (s *Syncer) ListenCloudDataChanges() error {
 
 		switch psm.Type {
 		case "file":
+			var file ent.File
+			var dir ent.Dir
+			json.Unmarshal(psm.Data, &file)
+			s.DB.Where("id = ?", file.ParentDirID).Find(&dir)
+
 			switch psm.Action {
-			case "create":
-				var file ent.File
-				json.Unmarshal(psm.Data, &file)
-				fileIO, err := s.httpClient.GetFile(file.ID)
-				if err != nil {
-					return err
-				}
-				var dir ent.Dir
-				s.DB.Where("id = ?", file.ParentDirID).Find(&dir)
-				f, err := os.Create(filepath.Join(dir.Dir, file.Name))
-				if err != nil {
-					return err
-				}
-
-				io.Copy(f, fileIO)
-				f.Close()
-				fileIO.Close()
-
+			case "create", "update":
+				s.Handle.FileWrite(file, dir.Dir, s.SyncTask[file.SyncID])
 			case "delete":
-			case "update":
-
+				s.Handle.FileDelete(file, dir.Dir, s.SyncTask[file.SyncID])
 			}
+
 		case "dir":
 			var dir ent.Dir
 			json.Unmarshal(psm.Data, &dir)
@@ -89,7 +75,6 @@ func (s *Syncer) ListenCloudDataChanges() error {
 				continue
 			}
 			s.Handle.DirDelete(psm.Data, s.SyncTask[dir.SyncID])
-
 		case "synctask":
 			if psm.Action == "create" {
 				s.Handle.SyncTaskCreate(psm.Data)

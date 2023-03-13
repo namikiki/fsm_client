@@ -8,14 +8,14 @@ import (
 	"fsm_client/pkg/ent"
 )
 
-func (h *Handle) FIleCreate(file ent.File, parentPath, rootPath string) error {
+func (h *Handle) FileWrite(file ent.File, parentPath, rootPath string) error {
 
 	fileIO, err := h.HttpClient.GetFile(file.ID)
 	if err != nil {
 		return err
 	}
 
-	createFile, err := os.Create(filepath.Join(rootPath, parentPath, file.Name))
+	createFile, err := os.OpenFile(filepath.Join(rootPath, parentPath, file.Name), os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
