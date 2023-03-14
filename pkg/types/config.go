@@ -14,3 +14,14 @@ type Server struct {
 	BaseUrl      string
 	WebSocketUrl string
 }
+
+type Ignore struct {
+	Regexp   []string
+	Filepath []string
+}
+
+//type Regexp struct {
+//}
+//
+//type Filepath struct {
+//}
