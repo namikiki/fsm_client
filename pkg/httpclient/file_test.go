@@ -50,5 +50,36 @@ func TestGetAllFileBySyncID(t *testing.T) {
 		log.Println(err)
 	}
 	log.Println(syncIDs)
+}
+
+func TestFile(t *testing.T) {
+	client := Init()
+	//file := ent.File{
+	//	ID:          "7679a111-cc4b-4718-ab73-13d1a92cd058",
+	//	SyncID:      "ab7dfaa0-721c-47de-95d1-3fbb2af7a7ad",
+	//	Name:        "file2",
+	//	ParentDirID: "cb52b2d6-14c5-4869-8395-abd3e618e801",
+	//	Level:       2,
+	//	Hash:        "a9c7dbdc61936620ff3204326f8065a6-1",
+	//	Size:        24,
+	//	Deleted:     false,
+	//	CreateTime:  time.Now(),
+	//	ModTime:     time.Now(),
+	//}
+
+	//t.Run("Test file delete", func(t *testing.T) {
+	//	err := client.FileDelete(file)
+	//	log.Println(err)
+	//})
+
+	t.Run("Test file update", func(t *testing.T) {
+		fileIO, err := os.Open("/Users/zylzyl/go/src/fsm_client/pkg/mock/testfile")
+		if err != nil {
+			log.Println(err)
+		}
+		file := mock.NewFile()
+
+		client.FileUpdate(&file, fileIO)
+	})
 
 }

@@ -31,6 +31,15 @@ func TestCreateDir(t *testing.T) {
 	log.Println(dir)
 }
 
+func TestDeleteDir(t *testing.T) {
+	client := Init()
+	dir := mock.NewDir()
+
+	if err := client.DirDelete(dir); err != nil {
+		log.Println(err)
+	}
+}
+
 func TestGetAllDirBySyncID(t *testing.T) {
 	client := Init()
 	dir := mock.NewDir()

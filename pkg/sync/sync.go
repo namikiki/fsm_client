@@ -32,6 +32,14 @@ func NewSyncer(client *httpclient.Client, db *gorm.DB, handle *handle.Handle) *S
 	}
 }
 
+func (s *Syncer) TaskInit() {
+	var st []ent.SyncTask
+	s.DB.Find(&st)
+	for _, task := range st {
+		s.SyncTask[task.ID] = task.RootDir
+	}
+}
+
 func (s *Syncer) ListenCloudDataChanges() error {
 	connect, err := s.httpClient.WebSocketConnect()
 	if err != nil {
@@ -39,7 +47,7 @@ func (s *Syncer) ListenCloudDataChanges() error {
 	}
 
 	for {
-		messageType, receivedMessage, err := connect.ReadMessage()
+		_, receivedMessage, err := connect.ReadMessage()
 		if err != nil {
 			log.Fatal("接收消息失败：", err)
 		}
@@ -60,35 +68,36 @@ func (s *Syncer) ListenCloudDataChanges() error {
 			json.Unmarshal(psm.Data, &file)
 			s.DB.Where("id = ?", file.ParentDirID).Find(&dir)
 
-			switch psm.Action {
-			case "create", "update":
+			if psm.Action == "update" || psm.Action == "create" {
 				s.Handle.FileWrite(file, dir.Dir, s.SyncTask[file.SyncID])
-			case "delete":
+			} else {
 				s.Handle.FileDelete(file, dir.Dir, s.SyncTask[file.SyncID])
 			}
 
 		case "dir":
+
 			var dir ent.Dir
 			json.Unmarshal(psm.Data, &dir)
 			if psm.Action == "create" {
-				s.Handle.DirCreate(psm.Data, s.SyncTask[dir.SyncID])
-				continue
+				s.Handle.DirCreate(dir, s.SyncTask[dir.SyncID])
+			} else {
+				s.Handle.DirDelete(dir, s.SyncTask[dir.SyncID])
 			}
-			s.Handle.DirDelete(psm.Data, s.SyncTask[dir.SyncID])
-		case "synctask":
+
+		case "syncTask":
+			var synctask ent.SyncTask
+			json.Unmarshal(psm.Data, &synctask)
+
 			if psm.Action == "create" {
-				s.Handle.SyncTaskCreate(psm.Data)
-				continue
+				s.Handle.SyncTaskCreate(synctask)
+			} else {
+				s.Handle.SyncTaskDelete(synctask)
 			}
-			s.Handle.SyncTaskDelete(psm.Data)
+
 		default:
 			log.Println(psm)
 		}
 
-		log.Printf("接收到的消息类型：%d \n msg %v", messageType, psm)
-
-		//fmt.Printf()
-		//fmt.Printf("接收到的消息内容：%s\n", string(receivedMessage))
 	}
 }
 

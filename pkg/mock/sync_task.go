@@ -8,12 +8,13 @@ import (
 
 func NewSyncTask() ent.SyncTask {
 	return ent.SyncTask{
-		//ID:         "",
-		//UserID:     "",
 		Type:       "two",
-		Name:       "media",
+		Name:       "mediawa",
 		RootDir:    "/dawdawdaw",
 		Deleted:    false,
 		CreateTime: time.Now(),
 	}
+}
+func df() {
+
 }

@@ -53,3 +53,31 @@ func (c *Client) GetAllFileBySyncID(syncID string) ([]ent.File, error) {
 	}
 	return files, nil
 }
+
+func (c *Client) FileDelete(file ent.File) error {
+	_, err := c.deserialization("DELETE", "/file", file)
+	return err
+}
+
+func (c *Client) FileUpdate(file *ent.File, fileIO io.ReadCloser) error {
+	defer fileIO.Close()
+	values, _ := query.Values(file)
+
+	request, _ := http.NewRequest("PUT", c.BaseUrl+"/file?"+values.Encode(), fileIO)
+	resp, err := c.HttpClient.Do(request)
+	if err != nil {
+		return err
+	}
+
+	var res types.ApiResult
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	if err != nil {
+		return err
+	}
+
+	if res.Code >= 500 {
+		return errors.New(res.Message)
+	}
+
+	return json.Unmarshal(res.Data, file)
+}

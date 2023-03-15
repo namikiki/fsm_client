@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"fsm_client/pkg/config"
 	"fsm_client/pkg/database"
@@ -15,12 +14,14 @@ import (
 )
 
 func main() {
-
-	if os.Args[1] == "mas" {
-		master()
-	} else {
-		sla()
-	}
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+	sla()
+	//sla()
+	//if os.Args[1] == "mas" {
+	//	master()
+	//} else {
+	//	sla()
+	//}
 
 	//err := syncer.RestoreSyncTask("820eb8bd-82b6-4891-aaba-6c93bc96a947", "/Users/zylzyl/go/src/fsm_client/test/filetest")
 	//if err != nil {
@@ -47,10 +48,10 @@ func master() {
 
 	cfg.Device.ClientID = uuid.NewString()
 	client := httpclient.NewClient(cfg)
-	//regis := mock.NewRegis()
-	//if err := client.Register(regis); err != nil {
-	//	log.Println(err)
-	//}
+	regis := mock.NewRegis()
+	if err := client.Register(regis); err != nil {
+		log.Println(err)
+	}
 
 	account := mock.NewAccount()
 	if err := client.Login(account); err != nil {
@@ -61,12 +62,12 @@ func master() {
 	hand := handle.NewHandle(client, gormCon)
 	syncer := sync.NewSyncer(client, gormCon, hand)
 
-	go func() {
-		err := syncer.ListenCloudDataChanges()
-		if err != nil {
-			log.Println(err)
-		}
-	}()
+	//go func() {
+	//	err := syncer.ListenCloudDataChanges()
+	//	if err != nil {
+	//		log.Println(err)
+	//	}
+	//}()
 
 	err := syncer.CreateSyncTask("syncTest", "/Users/zylzyl/Desktop/GolangProjects/fsm/filetest")
 	if err != nil {
@@ -81,6 +82,7 @@ func sla() {
 
 	cfg.Device.ClientID = uuid.NewString()
 	client := httpclient.NewClient(cfg)
+
 	//regis := mock.NewRegis()
 	//if err := client.Register(regis); err != nil {
 	//	log.Println(err)
@@ -94,6 +96,8 @@ func sla() {
 	gormCon := database.NewGormSQLiteConnect()
 	hand := handle.NewHandle(client, gormCon)
 	syncer := sync.NewSyncer(client, gormCon, hand)
+
+	syncer.TaskInit()
 
 	go func() {
 		err := syncer.ListenCloudDataChanges()

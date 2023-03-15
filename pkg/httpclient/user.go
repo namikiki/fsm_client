@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net/http"
 
@@ -46,7 +45,6 @@ func (c *Client) Login(user types.UserLoginReq) error {
 	}
 
 	var lr types.LoginRes
-
 	json.Unmarshal(res.Data, &lr)
 
 	c.JWT = lr.Token
@@ -54,7 +52,6 @@ func (c *Client) Login(user types.UserLoginReq) error {
 	c.HttpClient = newHttpClient(lr.Token, c.Conf.Device.ClientID)
 
 	return err
-
 }
 
 func (c *Client) WebSocketConnect() (*websocket.Conn, error) {
@@ -64,10 +61,10 @@ func (c *Client) WebSocketConnect() (*websocket.Conn, error) {
 	headers.Set("clientID", c.ClientID)
 
 	dial, resp, err := websocket.DefaultDialer.Dial(c.WebsocketUrl+"/websocket/connect", headers)
-	//log.Println(resp.Body)
-	all, _ := io.ReadAll(resp.Body)
-	log.Println(string(all))
-
+	if resp.StatusCode != 101 {
+		log.Println("websocket connect fail")
+	}
+	log.Println("websocket connect success")
 	return dial, err
 }
 

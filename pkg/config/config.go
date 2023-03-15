@@ -88,3 +88,11 @@ func GenerateClientID() string {
 func GetPlatformType() string {
 	return runtime.GOOS
 }
+
+func NewIgnoreConfig() (types.Ignore, error) {
+
+	var cfg types.Ignore
+	_, err := toml.DecodeFile("config.toml", &cfg)
+	return cfg, err
+
+}

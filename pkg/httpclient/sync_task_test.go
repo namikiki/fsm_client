@@ -21,7 +21,7 @@ func TestSyncTaskCreate(t *testing.T) {
 
 func TestSyncTaskDelete(t *testing.T) {
 	init := Init()
-	syncID := "6081ae73-9c9e-4028-90d4-b30624b80072"
+	syncID := "08e5a879-097f-4230-92d2-c13f2177bfd2"
 
 	err := init.SyncTaskDelete(syncID)
 	log.Println(err)

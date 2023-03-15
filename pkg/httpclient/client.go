@@ -77,6 +77,7 @@ func (c *Client) deserialization(method string, url string, d interface{}) ([]by
 
 func (c *Client) TestClient() {
 	resp, err := c.HttpClient.Get(c.BaseUrl + "/test")
+	log.Println(resp.StatusCode)
 	if err != nil {
 		log.Println(err)
 	}

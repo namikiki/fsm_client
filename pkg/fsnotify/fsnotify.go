@@ -2,27 +2,45 @@ package fsn
 
 import (
 	"log"
+	"os"
 
 	"fsm_client/pkg/ignore"
 
 	"github.com/fsnotify/fsnotify"
 )
 
-type watch struct {
-	W    *fsnotify.Watcher
-	ID   string
-	Path string
+type Watch struct {
+	W      *fsnotify.Watcher
+	SyncID string
+	Path   string
 }
+
+func NewWatch(syncID, path string) (Watch, error) {
+	_, err := os.Stat(path)
+	if err != nil {
+		return Watch{}, err
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+
+	return Watch{
+		SyncID: syncID,
+		Path:   path,
+		W:      watcher,
+	}, err
+
+}
+
 type WatchManger struct {
-	Watchers       map[string]watch
+	Watchers       map[string]Watch
 	Ignore         *ignore.Ignore
-	BuffChannel    chan interface{}
+	BuffChannel    chan fsnotify.Event
 	ErrBuffChannel chan error
 }
 
-func NewWatchManger(watcher map[string]watch, ignore *ignore.Ignore, buffChannel chan interface{}, errBuffChannel chan error) *WatchManger {
+func NewWatchManger(watchers map[string]Watch, ignore *ignore.Ignore, buffChannel chan fsnotify.Event, errBuffChannel chan error) *WatchManger {
 	return &WatchManger{
-		Watchers:       watcher,
+		Watchers:       watchers,
 		Ignore:         ignore,
 		BuffChannel:    buffChannel,
 		ErrBuffChannel: errBuffChannel,
@@ -34,15 +52,17 @@ func (wm *WatchManger) Add() {
 }
 
 func (wm *WatchManger) Remove() {
-
+	//fsnotify.Th
 }
 
 func (wm *WatchManger) Watch() {
+	log.Println("watch booting")
 	for s := range wm.Watchers {
 
 		go func() {
-			wm.Watchers[s].W.Add(s)
+			wm.Watchers[s].W.Add(wm.Watchers[s].Path)
 			for {
+				log.Println("watch thread ...")
 				select {
 				case event := <-wm.Watchers[s].W.Events:
 					wm.BuffChannel <- event
@@ -53,109 +73,112 @@ func (wm *WatchManger) Watch() {
 		}()
 
 	}
+	log.Println("watch start")
+	select {}
 }
 
 func (wm *WatchManger) ProessChan() {
+	log.Println("proess watch start")
 	for {
 		select {
 		case event := <-wm.BuffChannel:
-			f := event.(*fsnotify.Event)
-			if wm.Ignore.Match(f.String()) {
+			if wm.Ignore.Match(event.String()) {
 				continue
 			}
-			log.Println(f.Name)
+			log.Println(event.Name)
+
 		case err := <-wm.ErrBuffChannel:
 			log.Println(err)
 		}
 	}
 }
 
-type Task struct {
-	Name string
-	Op   string
-}
-
-var TasksChan = make(chan Task, 1)
-
-func StartTask() {
-	tasks := map[string]chan int{}
-
-	for {
-		select {
-		case t := <-TasksChan:
-			if t.Op == "add" {
-				c := make(chan int)
-				go NewFSN(t.Name, c)
-				tasks[t.Name] = c
-
-			} else if t.Op == "del" {
-				tasks[t.Name] <- 1
-				delete(tasks, t.Name)
-			}
-		}
-	}
-}
-
-func NewFSN(path string, c chan int) {
-	// Create new watcher.
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer watcher.Close()
-
-	// Start listening for events.
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				log.Println(path+"event:", event)
-				if event.Has(fsnotify.Write) {
-					log.Println("modified file:", event.Name)
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Println("error:", err)
-			}
-		}
-	}()
-
-	// Add a path.
-	err = watcher.Add("/tmp/" + path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Block main goroutine forever.
-	<-c
-}
-
-func NewWatch() *fsnotify.Watcher {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return watcher
-}
-
-func StartFSN(watcher *fsnotify.Watcher) {
-
-	for {
-		select {
-		case event := <-watcher.Events:
-			log.Println("event:", event)
-			if event.Has(fsnotify.Write) {
-				log.Println("modified file:", event.Name)
-			}
-		case err := <-watcher.Errors:
-			log.Println("error:", err)
-		}
-	}
-
-}
+//type Task struct {
+//	Name string
+//	Op   string
+//}
+//
+//var TasksChan = make(chan Task, 1)
+//
+//func StartTask() {
+//	tasks := map[string]chan int{}
+//
+//	for {
+//		select {
+//		case t := <-TasksChan:
+//			if t.Op == "add" {
+//				c := make(chan int)
+//				go NewFSN(t.Name, c)
+//				tasks[t.Name] = c
+//
+//			} else if t.Op == "del" {
+//				tasks[t.Name] <- 1
+//				delete(tasks, t.Name)
+//			}
+//		}
+//	}
+//}
+//
+//func NewFSN(path string, c chan int) {
+//	// Create new watcher.
+//	watcher, err := fsnotify.NewWatcher()
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	defer watcher.Close()
+//
+//	// Start listening for events.
+//	go func() {
+//		for {
+//			select {
+//			case event, ok := <-watcher.Events:
+//				if !ok {
+//					return
+//				}
+//				log.Println(path+"event:", event)
+//				if event.Has(fsnotify.Write) {
+//					log.Println("modified file:", event.Name)
+//				}
+//			case err, ok := <-watcher.Errors:
+//				if !ok {
+//					return
+//				}
+//				log.Println("error:", err)
+//			}
+//		}
+//	}()
+//
+//	// Add a path.
+//	err = watcher.Add("/tmp/" + path)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	// Block main goroutine forever.
+//	<-c
+//}
+//
+//func NewWatch() *fsnotify.Watcher {
+//	watcher, err := fsnotify.NewWatcher()
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	return watcher
+//}
+//
+//func StartFSN(watcher *fsnotify.Watcher) {
+//
+//	for {
+//		select {
+//		case event := <-watcher.Events:
+//			log.Println("event:", event)
+//			if event.Has(fsnotify.Write) {
+//				log.Println("modified file:", event.Name)
+//			}
+//		case err := <-watcher.Errors:
+//			log.Println("error:", err)
+//		}
+//	}
+//
+//}
