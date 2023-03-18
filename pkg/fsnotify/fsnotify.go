@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"fsm_client/pkg/ent"
 	"fsm_client/pkg/ignore"
 
 	"github.com/fsnotify/fsnotify"
@@ -13,84 +14,240 @@ type Watch struct {
 	W      *fsnotify.Watcher
 	SyncID string
 	Path   string
+	Ignore bool
 }
 
-func NewWatch(syncID, path string) (Watch, error) {
+type FsEventWithID struct {
+	fsnotify.Event
+	SyncID  string
+	AbsPath string
+}
+
+type FileFsEvent struct {
+	Event    fsnotify.Event
+	FullPath string
+	AbsPath  string
+	File     ent.File
+}
+
+type DirFsEvent struct {
+	Event fsnotify.Event
+	Dir   ent.Dir
+}
+
+func NewWatch(syncID, path string, ignore bool) (Watch, error) {
 	_, err := os.Stat(path)
 	if err != nil {
 		return Watch{}, err
 	}
 
 	watcher, err := fsnotify.NewWatcher()
-
 	return Watch{
 		SyncID: syncID,
 		Path:   path,
 		W:      watcher,
+		Ignore: ignore,
 	}, err
 
 }
 
 type WatchManger struct {
-	Watchers       map[string]Watch
-	Ignore         *ignore.Ignore
-	BuffChannel    chan fsnotify.Event
-	ErrBuffChannel chan error
+	Watchers        map[string]Watch
+	EventWithIDChan chan FsEventWithID
+	ErrBuffChannel  chan error
+	AddChannel      chan Watch
+	RemoveChannel   chan string
+	Ignore          *ignore.Ignore
 }
 
-func NewWatchManger(watchers map[string]Watch, ignore *ignore.Ignore, buffChannel chan fsnotify.Event, errBuffChannel chan error) *WatchManger {
+func NewWatchManger(buffLen int64,
+	ignore *ignore.Ignore) *WatchManger {
+
+	eventWithIDChan := make(chan FsEventWithID, buffLen)
+	errBuffChannel := make(chan error, 2)
+	removeChannel := make(chan string, 2)
+	addChannel := make(chan Watch, 4)
+	watchers := make(map[string]Watch)
+
 	return &WatchManger{
-		Watchers:       watchers,
-		Ignore:         ignore,
-		BuffChannel:    buffChannel,
-		ErrBuffChannel: errBuffChannel,
+		Watchers:        watchers,
+		AddChannel:      addChannel,
+		RemoveChannel:   removeChannel,
+		EventWithIDChan: eventWithIDChan,
+		ErrBuffChannel:  errBuffChannel,
+		Ignore:          ignore,
 	}
 }
 
-func (wm *WatchManger) Add() {
+func (wm *WatchManger) add(w Watch) {
+	if err := w.W.Add(w.Path); err != nil {
+		wm.ErrBuffChannel <- err
+		return
+	}
+
+	log.Printf("ID %s 路径 %s 开始监控", w.SyncID, w.Path)
+	rootPathLen := len(w.Path)
+	//PathSeparator := string(os.PathSeparator)
+
+	if w.Ignore {
+		for {
+			select {
+			case event := <-w.W.Events:
+				if wm.Ignore.Match(event.Name) {
+					continue
+				}
+				path := event.Name[rootPathLen:]
+				wm.EventWithIDChan <- FsEventWithID{event, w.SyncID, path}
+
+			case err := <-w.W.Errors:
+				wm.ErrBuffChannel <- err
+			}
+		}
+	}
+
+	for { //非过滤
+		select {
+		case event := <-w.W.Events:
+			path := event.Name[rootPathLen:]
+			wm.EventWithIDChan <- FsEventWithID{event, w.SyncID, path}
+		case err := <-w.W.Errors:
+			wm.ErrBuffChannel <- err
+		}
+	}
 
 }
 
-func (wm *WatchManger) Remove() {
-	//fsnotify.Th
+//func (wm *WatchManger) add(w Watch) {
+//	if err := w.W.Add(w.Path); err != nil {
+//		wm.ErrBuffChannel <- err
+//	}
+//	log.Printf("ID %s 路径 %s 开始监控", w.SyncID, w.Path)
+//	rootPathLen := len(w.Path)
+//	PathSeparator := string(os.PathSeparator)
+//
+//	if w.Ignore {
+//		for {
+//			select {
+//			case event := <-w.W.Events:
+//				if wm.Ignore.Match(event.Name) {
+//					continue
+//				}
+//
+//				stat, err := os.Stat(event.Name)
+//				if err != nil {
+//					log.Println(err)
+//					wm.ErrBuffChannel <- err
+//					continue
+//				}
+//
+//				path := event.Name[rootPathLen:]
+//				level := len(strings.Split(path, PathSeparator))
+//
+//				if stat.IsDir() {
+//					wm.DirChannel <- DirFsEvent{
+//						Event: event,
+//						Dir: ent.Dir{
+//							SyncID:     w.SyncID,
+//							Dir:        path,
+//							Level:      uint64(level),
+//							Deleted:    false,
+//							CreateTime: time.Now(),
+//							ModTime:    stat.ModTime(),
+//						},
+//					}
+//
+//				} else {
+//
+//					wm.FileChannel <- FileFsEvent{
+//						Event:    event,
+//						FullPath: event.Name,
+//						AbsPath:  path,
+//						File: ent.File{
+//							SyncID:      w.SyncID,
+//							Name:        stat.Name(),
+//							ParentDirID: "",
+//							Level:       uint64(level),
+//							Deleted:     false,
+//							CreateTime:  time.Now(),
+//							ModTime:     stat.ModTime(),
+//						},
+//					}
+//				}
+//			case err := <-w.W.Errors:
+//				wm.ErrBuffChannel <- err
+//			}
+//		}
+//	} else { // 非过滤
+//		for {
+//			select {
+//			case event := <-w.W.Events:
+//				stat, err := os.Stat(event.Name)
+//				if err != nil {
+//					log.Println(err)
+//					wm.ErrBuffChannel <- err
+//					continue
+//				}
+//
+//				path := event.Name[rootPathLen:]
+//				level := len(strings.Split(path, PathSeparator))
+//
+//				if stat.IsDir() {
+//					wm.DirChannel <- DirFsEvent{
+//						Event: event,
+//						Dir: ent.Dir{
+//							SyncID:     w.SyncID,
+//							Dir:        path,
+//							Level:      uint64(level),
+//							Deleted:    false,
+//							CreateTime: time.Now(),
+//							ModTime:    stat.ModTime(),
+//						},
+//					}
+//
+//				} else {
+//
+//					wm.FileChannel <- FileFsEvent{
+//						Event:    event,
+//						FullPath: event.Name,
+//						AbsPath:  path,
+//						File: ent.File{
+//							SyncID:      w.SyncID,
+//							Name:        stat.Name(),
+//							ParentDirID: "",
+//							Level:       uint64(level),
+//							Deleted:     false,
+//							CreateTime:  time.Now(),
+//							ModTime:     stat.ModTime(),
+//						},
+//					}
+//				}
+//			case err := <-w.W.Errors:
+//				wm.ErrBuffChannel <- err
+//			}
+//		}
+//	}
+//}
+
+func (wm *WatchManger) remove(syncID string) {
+	delete(wm.Watchers, syncID)
+
+	if err := wm.Watchers[syncID].W.Close(); err != nil {
+		wm.ErrBuffChannel <- err
+	}
 }
 
 func (wm *WatchManger) Watch() {
-	log.Println("watch booting")
-	for s := range wm.Watchers {
 
-		go func() {
-			wm.Watchers[s].W.Add(wm.Watchers[s].Path)
-			for {
-				log.Println("watch thread ...")
-				select {
-				case event := <-wm.Watchers[s].W.Events:
-					wm.BuffChannel <- event
-				case err := <-wm.Watchers[s].W.Errors:
-					wm.ErrBuffChannel <- err
-				}
-			}
-		}()
-
-	}
-	log.Println("watch start")
-	select {}
-}
-
-func (wm *WatchManger) ProessChan() {
-	log.Println("proess watch start")
 	for {
 		select {
-		case event := <-wm.BuffChannel:
-			if wm.Ignore.Match(event.String()) {
-				continue
-			}
-			log.Println(event.Name)
-
-		case err := <-wm.ErrBuffChannel:
-			log.Println(err)
+		case a := <-wm.AddChannel:
+			go wm.add(a)
+			wm.Watchers[a.SyncID] = a
+		case r := <-wm.RemoveChannel:
+			wm.remove(r)
 		}
 	}
+
 }
 
 //type Task struct {

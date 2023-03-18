@@ -8,7 +8,7 @@ type Ignore struct {
 	rules []Rule
 }
 
-func NewIgnore(ignoreConfig types.Ignore) (*Ignore, error) {
+func NewIgnore(ignoreConfig *types.Ignore) (*Ignore, error) {
 	rules, err := parseIgnoreConfig(ignoreConfig)
 	return &Ignore{rules}, err
 }
@@ -40,7 +40,7 @@ func (ig *Ignore) AddRegexpRule(expr string) error {
 	return nil
 }
 
-func parseIgnoreConfig(ignoreConfig types.Ignore) ([]Rule, error) {
+func parseIgnoreConfig(ignoreConfig *types.Ignore) ([]Rule, error) {
 	var rs []Rule
 
 	for _, ig := range ignoreConfig.Filepath {

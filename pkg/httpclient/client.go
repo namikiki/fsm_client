@@ -43,6 +43,8 @@ type Client struct {
 }
 
 func NewClient(conf *types.Config) *Client { // todo
+	log.Println("clientID = ", conf.Device.ClientID)
+
 	return &Client{
 		HttpClient:   nil,
 		DL:           map[string]struct{}{},

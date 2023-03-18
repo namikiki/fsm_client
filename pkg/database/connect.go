@@ -27,7 +27,7 @@ func EntConnect() *ent.Client {
 }
 
 func NewGormSQLiteConnect() *gorm.DB {
-	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("/Users/zylzyl/go/src/fsm_client/gorm.db"), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}

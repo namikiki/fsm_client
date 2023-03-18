@@ -89,10 +89,14 @@ func GetPlatformType() string {
 	return runtime.GOOS
 }
 
-func NewIgnoreConfig() (types.Ignore, error) {
+func NewIgnoreConfig() (*types.Ignore, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return nil, err
+	}
+	ignorePath := filepath.Join(dir, Application, "ignore")
 
-	var cfg types.Ignore
-	_, err := toml.DecodeFile("config.toml", &cfg)
-	return cfg, err
-
+	var ignore types.Ignore
+	_, err = toml.DecodeFile(ignorePath, &ignore)
+	return &ignore, err
 }

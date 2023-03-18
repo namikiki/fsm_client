@@ -11,6 +11,8 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/rjeczalik/notify v0.9.3
+	go.uber.org/fx v1.19.2
 	gorm.io/driver/sqlite v1.4.4
 	gorm.io/gorm v1.24.6
 )
@@ -38,6 +40,10 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/dig v1.16.1 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.4.0 // indirect

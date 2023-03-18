@@ -5,39 +5,53 @@ import (
 	"log"
 	"time"
 
+	//"time"
+
 	"fsm_client/pkg/ent"
 	"fsm_client/pkg/handle"
 	"fsm_client/pkg/httpclient"
 	"fsm_client/pkg/types"
 
+	"fsm_client/pkg/fsnotify"
+
 	"gorm.io/gorm"
 )
 
 type Syncer struct {
-	httpClient *httpclient.Client //http client
-	DB         *gorm.DB
-	Handle     *handle.Handle
-	SyncTask   map[string]string
+	httpClient  *httpclient.Client //http client
+	DB          *gorm.DB
+	Handle      *handle.Handle
+	SyncTask    map[string]string
+	WatchManger *fsn.WatchManger
 }
 
-func NewSyncer(client *httpclient.Client, db *gorm.DB, handle *handle.Handle) *Syncer {
+func NewSyncer(client *httpclient.Client, db *gorm.DB, handle *handle.Handle, watchManger *fsn.WatchManger) *Syncer {
 	// todo  init SyncTask
 	synctask := make(map[string]string)
 
 	return &Syncer{
-		httpClient: client,
-		DB:         db,
-		Handle:     handle,
-		SyncTask:   synctask,
+		httpClient:  client,
+		DB:          db,
+		Handle:      handle,
+		SyncTask:    synctask,
+		WatchManger: watchManger,
 	}
 }
 
-func (s *Syncer) TaskInit() {
+func (s *Syncer) ListenLocalChanges() error {
 	var st []ent.SyncTask
 	s.DB.Find(&st)
+
 	for _, task := range st {
-		s.SyncTask[task.ID] = task.RootDir
+		watch, err := fsn.NewWatch(task.ID, task.RootDir, true)
+		if err != nil {
+			return err
+		}
+		s.WatchManger.AddChannel <- watch
 	}
+
+	s.Handle.PressLocalChange(s.WatchManger.EventWithIDChan, s.WatchManger.ErrBuffChannel)
+	return nil
 }
 
 func (s *Syncer) ListenCloudDataChanges() error {
@@ -57,6 +71,7 @@ func (s *Syncer) ListenCloudDataChanges() error {
 			log.Println(err)
 		}
 
+		log.Println(psm.ClientID, s.httpClient.ClientID)
 		if psm.ClientID == s.httpClient.ClientID {
 			continue
 		}
@@ -101,6 +116,12 @@ func (s *Syncer) ListenCloudDataChanges() error {
 	}
 }
 
+func (s *Syncer) Error() {
+	for {
+		log.Println(<-s.WatchManger.ErrBuffChannel)
+	}
+}
+
 func (s *Syncer) CreateSyncTask(name, root string) error {
 
 	task := ent.SyncTask{
@@ -116,7 +137,54 @@ func (s *Syncer) CreateSyncTask(name, root string) error {
 	}
 	s.DB.Create(&task)
 
-	return s.Handle.ScannerPathToUpload(task.RootDir, task.ID)
+	if err := s.Handle.ScannerPathToUpload(task.RootDir, task.ID); err != nil {
+		return err
+	}
+
+	watch, err := fsn.NewWatch(task.ID, task.RootDir, true)
+	if err != nil {
+		return err
+	}
+
+	s.WatchManger.AddChannel <- watch
+	return err
+}
+
+func (s *Syncer) DeleteSyncTask(syncID string, deleteFile bool) error {
+	var sync ent.SyncTask
+	s.DB.Where("id=?", syncID).Find(&sync)
+
+	if deleteFile {
+		return s.Handle.DeleteAllFileByDir(sync.RootDir)
+	}
+	return s.httpClient.SyncTaskDelete(syncID)
+}
+
+func (s *Syncer) CancelSyncTask(syncID string) error {
+	var sync ent.SyncTask
+	s.DB.Where("id=?", syncID).Find(&sync)
+
+	//todo 关闭本地文件夹监控
+	//todo 将数据库 更新为 delete
+	//todo 过滤掉云端的数据变化消息
+	return nil
+}
+
+func (s *Syncer) PauseSyncTask() {
+
+	//syncID
+	//path
+	//bool
+	// ignore
+	//
+	//
+	//s.WatchManger.AddAndDeleteChannel <-
+	// todo 关闭本地文件夹监控
+	//todo 过滤掉云端的数据变化消息
+}
+
+func (s *Syncer) Continue() {
+
 }
 
 func (s *Syncer) RestoreSyncTask(taskID, path string) error {
@@ -129,62 +197,3 @@ func (s *Syncer) RestoreSyncTask(taskID, path string) error {
 	//todo 开启数据变化DIR监视
 	return err
 }
-
-func (s *Syncer) PauseSyncTask() {
-
-}
-
-func (s *Syncer) ContinuePause() {
-
-}
-
-//func (s *Syncer) GetFile(fileID string) (io.ReadCloser, error) {
-//	request, _ := http.NewRequest("GET", baseUrl+"/file/open/"+fileID, nil)
-//	request.Header.Set("Content-Type", "application/json")
-//
-//	resp, err := s.httpClient.Do(request)
-//	return resp.Body, err
-//}
-//
-//func (s *Syncer) GetAllDirBySyncID(syncID string) ([]ent.Dir, error) {
-//	request, _ := http.NewRequest("GET", baseUrl+"/dir/getAllDirBySyncID/"+syncID, nil)
-//	request.Header.Set("Content-Type", "application/json")
-//
-//	var dirs []ent.Dir
-//	if resp, err := s.httpClient.Do(request); err == nil {
-//
-//		return dirs, json.NewDecoder(resp.Body).Decode(&dirs)
-//	}
-//	return nil, nil
-//}
-//
-//func (s *Syncer) GetAllFileBySyncID(syncID string) ([]ent.File, error) {
-//
-//	request, _ := http.NewRequest("GET", baseUrl+"/file/get/all/bySyncID/"+syncID, nil)
-//	request.Header.Set("Content-Type", "application/json")
-//
-//	var files []ent.File
-//	if resp, err := s.httpClient.Do(request); err == nil {
-//		return files, json.NewDecoder(resp.Body).Decode(&files)
-//	}
-//	return nil, nil
-//}
-//
-//func (s *Syncer) CreateSyncTask(task *ent.SyncTask) error {
-//	marshal, _ := json.Marshal(task)
-//	request, _ := http.NewRequest("POST", baseUrl+"/synctask/create", bytes.NewBuffer(marshal))
-//	request.Header.Set("Content-Type", "application/json")
-//	request.Header.Set("client", s.clientID)
-//	if resp, err := s.httpClient.Do(request); err == nil {
-//		return json.NewDecoder(resp.Body).Decode(&task)
-//	}
-//	return nil
-//}
-//
-//func (s *Syncer) CreateDir(e *ent.Dir) error {
-//	return nil
-//}
-//
-//func (s *Syncer) CreateFile(e *ent.File, open *os.File) error {
-//	return nil
-//}

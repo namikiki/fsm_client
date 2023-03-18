@@ -1,16 +1,16 @@
 package httpapi
 
 import (
-	"net/http"
+	"fsm_client/pkg/sync"
 
-	"github.com/fsnotify/fsnotify"
+	"gorm.io/gorm"
 )
 
 type Handle struct {
-	client *http.Client
-	watch  *fsnotify.Watcher
+	DB   *gorm.DB
+	Sync *sync.Syncer
 }
 
-func New(client *http.Client, watch *fsnotify.Watcher) Handle {
-	return Handle{client: client, watch: watch}
+func New(sync *sync.Syncer, db *gorm.DB) Handle {
+	return Handle{Sync: sync, DB: db}
 }
