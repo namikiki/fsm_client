@@ -90,13 +90,17 @@ func GetPlatformType() string {
 }
 
 func NewIgnoreConfig() (*types.Ignore, error) {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return nil, err
-	}
-	ignorePath := filepath.Join(dir, Application, "ignore")
+	//dir, err := os.UserConfigDir()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//ignorePath := filepath.Join(dir, Application, "ignore")
+
+	ignorePath := "ignore.toml"
 
 	var ignore types.Ignore
-	_, err = toml.DecodeFile(ignorePath, &ignore)
+	_, err := toml.DecodeFile(ignorePath, &ignore)
+	log.Println("ignore :", ignore)
+
 	return &ignore, err
 }

@@ -11,7 +11,7 @@ import (
 	"fsm_client/pkg/ent"
 	fsn "fsm_client/pkg/fsnotify"
 
-	"github.com/fsnotify/fsnotify"
+	"github.com/rjeczalik/notify"
 )
 
 const PathSeparator = string(os.PathSeparator)
@@ -68,7 +68,7 @@ func (h *Handle) CloudFileCreate(fw fsn.FsEventWithID, stat os.FileInfo) error {
 		return errors.New("未找到 parentID")
 	}
 
-	fileIO, err := os.Open(fw.Name)
+	fileIO, err := os.Open(fw.Path())
 	if err != nil {
 		return err
 	}
@@ -82,12 +82,50 @@ func (h *Handle) CloudFileCreate(fw fsn.FsEventWithID, stat os.FileInfo) error {
 }
 
 func (h *Handle) CloudFileDelete(file ent.File) error {
-	err := h.HttpClient.FileDelete(file)
-	if err != nil {
+	if err := h.HttpClient.FileDelete(file); err != nil {
 		return err
 	}
 
 	h.DB.Delete(&file)
+	return nil
+}
+
+func (h *Handle) CloudFileUpdate(fw fsn.FsEventWithID) error {
+	split := strings.Split(fw.AbsPath, PathSeparator)
+	level := len(split)
+
+	var files []ent.File
+	var file *ent.File
+	var err error
+
+	stat, err := os.Stat(fw.Path())
+	if err != nil {
+		return err
+	}
+
+	h.DB.Where("sync_id = ? and level =? and name =?", fw.SyncID, level, stat.Name()).Find(&files)
+	if len(files) == 0 {
+		return h.CloudFileCreate(fw, stat)
+	}
+
+	if len(files) == 1 {
+		file = &files[0]
+	} else {
+		if file, err = h.GetUFile(fw.AbsPath, split[level-1], fw.SyncID, level); err != nil {
+			return err
+		}
+	}
+
+	fileIO, err := os.Open(fw.Path())
+	if err != nil {
+		return err
+	}
+
+	if err = h.HttpClient.FileUpdate(file, fileIO); err != nil {
+		return err
+	}
+
+	h.DB.Save(file)
 	return nil
 }
 
@@ -96,7 +134,7 @@ func (h *Handle) CloudDirCreate(fw fsn.FsEventWithID, stat os.FileInfo) error {
 
 	dir := ent.Dir{
 		SyncID:     fw.SyncID,
-		Dir:        fw.AbsPath,
+		Dir:        fw.AbsPath + "/",
 		Level:      uint64(level),
 		Deleted:    false,
 		CreateTime: time.Now(),
@@ -121,34 +159,54 @@ func (h *Handle) CloudDirDelete(dir ent.Dir) error {
 	return nil
 }
 
-func (h *Handle) GetDeleteID(fw fsn.FsEventWithID) (*ent.Dir, *ent.File, bool) {
+// GetUFile  当出现多个 syncID level name 相同的文件时，获取 file
+func (h *Handle) GetUFile(absPath, name, syncID string, level int) (*ent.File, error) {
+	parentPath := strings.TrimSuffix(absPath, name)
+	var dir ent.Dir
+	h.DB.Where("sync_id = ? and level =? and dir =?", syncID, level-1, parentPath).Find(&dir)
+	if dir.ID == "" {
+		return nil, errors.New("")
+	}
+
+	var file ent.File
+	h.DB.Where("sync_id = ? and level =? and parent_dir_id =? and name =?", syncID, level, dir.ID, name).Find(&file)
+	if file.ID == "" {
+		return nil, errors.New("")
+	}
+	return &file, nil
+}
+
+func (h *Handle) GetDeleteID(fw fsn.FsEventWithID) (*ent.Dir, *ent.File) {
 	split := strings.Split(fw.AbsPath, PathSeparator)
 	level := len(split)
 	var dir ent.Dir
-	h.DB.Where("sync_id = ? and level =? dir =?", fw.SyncID, level, fw.AbsPath).Find(&dir)
-	if dir.ID != "" {
-		return &dir, nil, true
-	}
 
 	var files []ent.File
-	h.DB.Where("sync_id = ? and level =? name =?", fw.SyncID, level, split[level-1]).Find(&files)
-	if len(files) == 1 {
-		return nil, &files[0], false
+	h.DB.Where("sync_id = ? and level =? and name =?", fw.SyncID, level, split[level-1]).Find(&files)
+
+	switch len(files) {
+	case 0:
+		if h.DB.Where("sync_id = ? and level =? and dir =?", fw.SyncID, level, fw.AbsPath+"/").Find(&dir); dir.ID != "" {
+			return &dir, nil
+		}
+	case 1:
+		return nil, &files[0]
+	default:
+		if file, err := h.GetUFile(fw.AbsPath, split[level-1], fw.SyncID, level); err != nil {
+			return nil, file
+		}
+		return nil, nil
 	}
 
-	return nil, nil, false
-	//for _, file := range files {
-	//
-	//	os.Stat()
-	//}
+	return nil, nil
 }
 
 func (h *Handle) PressLocalChange(eventChan chan fsn.FsEventWithID, errChan chan error) {
 	for {
 		e := <-eventChan
-		switch e.Op {
-		case fsnotify.Create:
-			stat, err := os.Stat(e.Name)
+		switch e.Event() {
+		case notify.Create:
+			stat, err := os.Stat(e.Path())
 			if err != nil {
 				errChan <- err
 				continue
@@ -158,26 +216,22 @@ func (h *Handle) PressLocalChange(eventChan chan fsn.FsEventWithID, errChan chan
 				errChan <- h.CloudDirCreate(e, stat)
 				continue
 			}
-			errChan <- h.CloudFileCreate(e, stat)
-		case fsnotify.Write:
-			stat, err := os.Stat(e.Name)
-			if err != nil {
-				errChan <- err
-				continue
-			}
-			errChan <- h.CloudFileCreate(e, stat)
-
-		case fsnotify.Remove:
-			dir, file, isDir := h.GetDeleteID(e)
-			if isDir {
+			errChan <- h.CloudFileUpdate(e)
+			//errChan <- h.CloudFileCreate(e, stat)
+		case notify.Write:
+			errChan <- h.CloudFileUpdate(e)
+		case notify.Remove:
+			dir, file := h.GetDeleteID(e)
+			if dir != nil {
 				errChan <- h.CloudDirDelete(*dir)
-				continue
+			} else if file != nil {
+				errChan <- h.CloudFileDelete(*file)
+			} else {
+				errChan <- errors.New("未找到删除的文件或者文件夹的位置" + e.Path())
 			}
-			errChan <- h.CloudFileDelete(*file)
-
-		case fsnotify.Rename:
-
-			//n(d)] = ed[le
+		case notify.Rename:
+			//var ty [2]fsn.FsEventWithID
+			//ty[len(ty)] = e
 
 		}
 

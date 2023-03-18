@@ -11,6 +11,7 @@ import (
 
 	"fsm_client/pkg/ent"
 	"fsm_client/pkg/httpclient"
+	"fsm_client/pkg/ignore"
 
 	"gorm.io/gorm"
 )
@@ -18,12 +19,16 @@ import (
 type Handle struct {
 	HttpClient *httpclient.Client
 	DB         *gorm.DB
+	//Lock       *ignore.Lock
 }
 
+// lock *ignore.Lock
 func NewHandle(c *httpclient.Client, db *gorm.DB) *Handle {
+
 	return &Handle{
 		HttpClient: c,
 		DB:         db,
+		//Lock:       lock,
 	}
 }
 
@@ -86,12 +91,16 @@ func (h *Handle) GetSyncTaskToDownload(syncID, path string) error {
 	}
 
 	for i := range dirs {
+		ignore.Lock.Store(strings.TrimSuffix(path+dirs[i].Dir, PathSeparator), 1)
+
 		if err := os.MkdirAll(path+dirs[i].Dir, os.ModePerm); err != nil {
 			if !os.IsExist(err) {
 				log.Println(err)
 				return err
 			}
 		} // 文件夹创建成功
+		time.Sleep(time.Millisecond * 500)
+		ignore.Lock.Delete(path + dirs[i].Dir)
 	}
 	h.DB.Create(&dirs)
 
@@ -105,11 +114,16 @@ func (h *Handle) GetSyncTaskToDownload(syncID, path string) error {
 		if fileIO, err := h.HttpClient.GetFile(files[i].ID); err == nil {
 			var dir ent.Dir
 			h.DB.Where("id = ?", files[i].ParentDirID).Find(&dir)
+
+			ignore.Lock.Store(path+dir.Dir+files[i].Name, 1)
+
 			if file, err := os.Create(path + dir.Dir + files[i].Name); err == nil {
 				io.Copy(file, fileIO)
 				file.Close()
 			}
 			fileIO.Close()
+			time.Sleep(time.Millisecond * 500)
+			ignore.Lock.Delete(path + dir.Dir + files[i].Name)
 		}
 
 	} //文件创建成功

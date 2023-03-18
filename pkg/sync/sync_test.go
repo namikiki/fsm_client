@@ -2,7 +2,7 @@ package sync
 
 import (
 	"log"
-	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -29,10 +29,12 @@ func TestT1(t *testing.T) {
 }
 
 func TestName(t *testing.T) {
-	stat, err := os.Stat("/Users/zylzyl/go/src/fsm_client/pkg/mock/gggg")
-	if err != nil {
-		log.Println(err)
-	}
-	log.Println(stat)
+	//stat, err := os.Stat("/Users/zylzyl/go/src/fsm_client/pkg/mock/gggg")
+	//if err != nil {
+	//	log.Println(err)
+	//}
+	//log.Println(stat)
+
+	log.Println(filepath.Join("/Users/zylzyl/go/src/fsm_client/pkg/mock", "..."))
 
 }

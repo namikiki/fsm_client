@@ -1,0 +1,2 @@
+Regexp =  ["\\.swo$|\\.swp$|\\.swx$","~$"]
+Filepath = []

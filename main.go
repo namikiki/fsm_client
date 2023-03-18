@@ -27,12 +27,6 @@ func Init() (int64, *types.Config) {
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Llongfile)
-	//stat, err2 := os.Stat("/Users/zylzyl/go/src/fsm_client/pkg/mock/bn.txt")
-	//if err2 != nil {
-	//	log.Println(err2)
-	//}
-	//log.Println(stat)
-	//return
 
 	err := fx.New(
 
@@ -40,6 +34,7 @@ func main() {
 			Init,
 			config.NewIgnoreConfig,
 			ignore.NewIgnore,
+			//ignore.NewLock,
 			fsn.NewWatchManger,
 
 			mock.NewRegis,
@@ -75,7 +70,11 @@ func main() {
 			},
 
 			//func(sync *sync.Syncer) {
-			//	sync.CreateSyncTask("test", "/Users/zylzyl/Desktop/markdown/Clanag")
+			//	sync.CreateSyncTask("test", "/Users/zylzyl/Desktop/markdown/synctest/res")
+			//},
+
+			//func(sync *sync.Syncer) {
+			//	sync.RestoreSyncTask("bda5ffca-947b-4456-93a5-043f91466273", "/Users/zylzyl/Desktop/markdown/synctest/tyu")
 			//},
 		),
 	).Err()
@@ -146,9 +145,9 @@ func master() {
 		log.Println(err)
 	}
 
-	gormCon := database.NewGormSQLiteConnect()
-	hand := handle.NewHandle(client, gormCon)
-	syncer := sync.NewSyncer(client, gormCon, hand, nil)
+	//gormCon := database.NewGormSQLiteConnect()
+	//hand := handle.NewHandle(client, gormCon)
+	//syncer := sync.NewSyncer(client, gormCon, hand, nil)
 
 	//go func() {
 	//	err := syncer.ListenCloudDataChanges()
@@ -157,10 +156,10 @@ func master() {
 	//	}
 	//}()
 
-	err := syncer.CreateSyncTask("syncTest", "/Users/zylzyl/Desktop/GolangProjects/fsm/filetest")
-	if err != nil {
-		log.Println(err)
-	}
+	//err := syncer.CreateSyncTask("syncTest", "/Users/zylzyl/Desktop/GolangProjects/fsm/filetest")
+	//if err != nil {
+	//	log.Println(err)
+	//}
 }
 
 func sla() {
@@ -180,24 +179,24 @@ func sla() {
 	if err := client.Login(account); err != nil {
 		log.Println(err)
 	}
-
-	gormCon := database.NewGormSQLiteConnect()
-	hand := handle.NewHandle(client, gormCon)
-	syncer := sync.NewSyncer(client, gormCon, hand, nil)
-
-	syncer.ListenLocalChanges()
-
-	go func() {
-		err := syncer.ListenCloudDataChanges()
-		if err != nil {
-			log.Println(err)
-		}
-	}()
-
-	select {}
-
-	err := syncer.CreateSyncTask("syncTest", "/Users/zylzyl/Desktop/GolangProjects/fsm/filetest")
-	if err != nil {
-		log.Println(err)
-	}
+	//
+	//gormCon := database.NewGormSQLiteConnect()
+	//hand := handle.NewHandle(client, gormCon)
+	//syncer := sync.NewSyncer(client, gormCon, hand, nil)
+	//
+	//syncer.ListenLocalChanges()
+	//
+	//go func() {
+	//	err := syncer.ListenCloudDataChanges()
+	//	if err != nil {
+	//		log.Println(err)
+	//	}
+	//}()
+	//
+	//select {}
+	//
+	//err := syncer.CreateSyncTask("syncTest", "/Users/zylzyl/Desktop/GolangProjects/fsm/filetest")
+	//if err != nil {
+	//	log.Println(err)
+	//}
 }

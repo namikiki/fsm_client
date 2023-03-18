@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 
 	"fsm_client/pkg/ent"
@@ -13,6 +14,7 @@ import (
 )
 
 func (c *Client) FileCreate(file *ent.File, fileIO io.ReadCloser) error {
+	log.Println("上传之前", file.Name, file.ID)
 	defer fileIO.Close()
 	values, _ := query.Values(file)
 

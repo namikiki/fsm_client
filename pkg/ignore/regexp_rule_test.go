@@ -7,10 +7,13 @@ import (
 )
 
 func TestRegexp(t *testing.T) {
-	matchString, err := regexp.MatchString("(\\.(swp|swo)$)|(^\\.DS_Store$)|(~$)", "/Users/zylzyl/go/src/fsm_client/pkg/mock/test/jkh~")
+	Rex, err := regexp.Compile("~$")
 	if err != nil {
 		return
 	}
+
+	matchString := Rex.MatchString("/Users/zylzyl/Desktop/markdown/synctest/res/4.txt~")
+
 	if matchString {
 		log.Printf("true")
 	}

@@ -71,7 +71,6 @@ func (s *Syncer) ListenCloudDataChanges() error {
 			log.Println(err)
 		}
 
-		log.Println(psm.ClientID, s.httpClient.ClientID)
 		if psm.ClientID == s.httpClient.ClientID {
 			continue
 		}
@@ -118,7 +117,9 @@ func (s *Syncer) ListenCloudDataChanges() error {
 
 func (s *Syncer) Error() {
 	for {
-		log.Println(<-s.WatchManger.ErrBuffChannel)
+		if err := <-s.WatchManger.ErrBuffChannel; err != nil {
+			log.Println(err)
+		}
 	}
 }
 
@@ -194,6 +195,10 @@ func (s *Syncer) RestoreSyncTask(taskID, path string) error {
 		return err
 	}
 
-	//todo 开启数据变化DIR监视
+	watch, err := fsn.NewWatch(taskID, path, true)
+	if err != nil {
+		return err
+	}
+	s.WatchManger.AddChannel <- watch
 	return err
 }

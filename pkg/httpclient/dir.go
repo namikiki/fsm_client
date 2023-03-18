@@ -2,11 +2,13 @@ package httpclient
 
 import (
 	"encoding/json"
+	"log"
 
 	"fsm_client/pkg/ent"
 )
 
 func (c *Client) DirCreate(dir *ent.Dir) error {
+	log.Println(dir.Dir)
 	res, err := c.deserialization("POST", "/dir/create", dir)
 	if err != nil {
 		return err

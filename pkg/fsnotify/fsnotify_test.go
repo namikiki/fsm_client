@@ -7,6 +7,19 @@ import (
 	"github.com/rjeczalik/notify"
 )
 
+func TestName(t *testing.T) {
+	var a [2]int
+
+	log.Println(len(a), cap(a))
+
+	//watcher, _ := fsnotify.NewWatcher()
+	//watcher.Add("/Users/zylzyl/Desktop/markdown/Clanag/")
+	//for {
+	//	e := <-watcher.Events
+	//	log.Println(e)
+	//}
+}
+
 // import (
 //
 //	"log"
