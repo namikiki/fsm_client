@@ -61,3 +61,8 @@ func TestTUY(t *testing.T) {
 	//}
 
 }
+
+func TestName1(t *testing.T) {
+	stat, err := os.Stat("/adwdawdawd")
+	log.Println(stat, err)
+}

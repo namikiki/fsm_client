@@ -54,33 +54,34 @@ func NewWatch(syncID, path string, ignore bool) (*Watcher, error) {
 }
 
 type WatchManger struct {
-	Watchers        map[string]*Watcher
-	EventWithIDChan chan FsEventWithID
-	ErrBuffChannel  chan error
-	AddChannel      chan *Watcher
-	RemoveChannel   chan string
-	Ignore          *ignore.Ignore
-	//Lock            *ignore.Lock
+	Watchers            map[string]*Watcher
+	EventWithIDChan     chan FsEventWithID
+	ErrBuffChannel      chan error
+	RenameChannel       chan FsEventWithID
+	AddNotifyChannel    chan *Watcher
+	RemoveNotifyChannel chan string
+	Ignore              *ignore.Ignore
 }
 
-// lock *ignore.Lock
+// NewWatchManger  NewWatchManger
 func NewWatchManger(buffLen int64, ignore *ignore.Ignore,
 ) *WatchManger {
 
 	eventWithIDChan := make(chan FsEventWithID, buffLen)
+	RenameChannel := make(chan FsEventWithID, buffLen)
 	errBuffChannel := make(chan error, 2)
 	removeChannel := make(chan string, 2)
 	addChannel := make(chan *Watcher, 4)
 	watchers := make(map[string]*Watcher)
 
 	return &WatchManger{
-		Watchers:        watchers,
-		AddChannel:      addChannel,
-		RemoveChannel:   removeChannel,
-		EventWithIDChan: eventWithIDChan,
-		ErrBuffChannel:  errBuffChannel,
-		Ignore:          ignore,
-		//Lock:            lock,
+		Watchers:            watchers,
+		AddNotifyChannel:    addChannel,
+		RenameChannel:       RenameChannel,
+		RemoveNotifyChannel: removeChannel,
+		EventWithIDChan:     eventWithIDChan,
+		ErrBuffChannel:      errBuffChannel,
+		Ignore:              ignore,
 	}
 }
 
@@ -88,7 +89,6 @@ func (wm *WatchManger) add(w *Watcher) {
 
 	log.Printf("ID %s 路径 %s 开始监控", w.SyncID, w.Path)
 	rootPathLen := len(w.Path)
-	//PathSeparator := string(os.PathSeparator)
 
 	if w.Ignore {
 		for {
@@ -101,24 +101,35 @@ func (wm *WatchManger) add(w *Watcher) {
 				continue
 			}
 
+			path := event.Path()[rootPathLen:]
 			log.Println(event.Event(), event.Path())
 
-			path := event.Path()[rootPathLen:]
+			if event.Event() == notify.Rename {
+				wm.RenameChannel <- FsEventWithID{event, w.SyncID, path}
+				continue
+			}
+
 			wm.EventWithIDChan <- FsEventWithID{event, w.SyncID, path}
 		}
+
 		log.Printf("ID %s 路径 %s 停止监控", w.SyncID, w.Path)
 		return
 	}
 
 	for { //非过滤
 		event := <-w.Chan
-		//if _, ok := wm.Lock.Load(event.Path()); ok {
-		//	continue
-		//}
-
-		log.Println(event.Event(), event.Path())
+		if _, ok := ignore.Lock.Load(event.Path()); ok {
+			continue
+		}
 
 		path := event.Path()[rootPathLen:]
+		log.Println(event.Event(), event.Path())
+
+		if event.Event() == notify.Rename {
+			wm.RenameChannel <- FsEventWithID{event, w.SyncID, path}
+			continue
+		}
+
 		wm.EventWithIDChan <- FsEventWithID{event, w.SyncID, path}
 	}
 
@@ -247,7 +258,7 @@ func (wm *WatchManger) Watch() {
 
 	for {
 		select {
-		case a := <-wm.AddChannel:
+		case a := <-wm.AddNotifyChannel:
 			if _, ok := wm.Watchers[a.SyncID]; ok {
 				log.Println("已监测", a.Path)
 				continue
@@ -255,7 +266,7 @@ func (wm *WatchManger) Watch() {
 
 			go wm.add(a)
 			wm.Watchers[a.SyncID] = a
-		case r := <-wm.RemoveChannel:
+		case r := <-wm.RemoveNotifyChannel:
 			wm.remove(r)
 		}
 	}

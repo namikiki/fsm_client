@@ -83,3 +83,27 @@ func TestFile(t *testing.T) {
 	})
 
 }
+
+func TestFIleRename(t *testing.T) {
+	client := Init()
+
+	file := mock.NewFile()
+	fileIO, err := os.Open("/Users/zylzyl/go/src/fsm_client/pkg/mock/包子")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = client.FileCreate(&file, fileIO)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	file.Name = "小学博士"
+	err = client.FileRename(file)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+}

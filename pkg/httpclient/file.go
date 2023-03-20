@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 
 	"fsm_client/pkg/ent"
@@ -14,11 +13,11 @@ import (
 )
 
 func (c *Client) FileCreate(file *ent.File, fileIO io.ReadCloser) error {
-	log.Println("上传之前", file.Name, file.ID)
+
 	defer fileIO.Close()
 	values, _ := query.Values(file)
 
-	request, _ := http.NewRequest("POST", c.BaseUrl+"/file/create?"+values.Encode(), fileIO)
+	request, _ := http.NewRequest("POST", c.BaseUrl+"/file?"+values.Encode(), fileIO)
 	resp, err := c.HttpClient.Do(request)
 	if err != nil {
 		return err
@@ -38,14 +37,14 @@ func (c *Client) FileCreate(file *ent.File, fileIO io.ReadCloser) error {
 }
 
 func (c *Client) GetFile(fileID string) (io.ReadCloser, error) {
-	request, _ := http.NewRequest("GET", c.BaseUrl+"/file/open/"+fileID, nil)
+	request, _ := http.NewRequest("GET", c.BaseUrl+"/file/"+fileID, nil)
 	resp, err := c.HttpClient.Do(request)
 	return resp.Body, err
 }
 
 func (c *Client) GetAllFileBySyncID(syncID string) ([]ent.File, error) {
 	var files []ent.File
-	res, err := c.deserialization("GET", "/file/get/all/bySyncID/"+syncID, nil)
+	res, err := c.deserialization("GET", "/files/"+syncID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -82,4 +81,9 @@ func (c *Client) FileUpdate(file *ent.File, fileIO io.ReadCloser) error {
 	}
 
 	return json.Unmarshal(res.Data, file)
+}
+
+func (c *Client) FileRename(file ent.File) error {
+	_, err := c.deserialization("PUT", "/file/name", file)
+	return err
 }

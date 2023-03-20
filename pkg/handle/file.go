@@ -3,6 +3,7 @@ package handle
 import (
 	"errors"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,6 @@ import (
 const PathSeparator = string(os.PathSeparator)
 
 func (h *Handle) FileWrite(file ent.File, parentPath, rootPath string) error {
-
 	fileIO, err := h.HttpClient.GetFile(file.ID)
 	if err != nil {
 		return err
@@ -28,10 +28,16 @@ func (h *Handle) FileWrite(file ent.File, parentPath, rootPath string) error {
 		return err
 	}
 
-	defer fileIO.Close()
-	defer createFile.Close()
 	_, err = io.Copy(createFile, fileIO)
-	h.DB.Create(&file)
+
+	fileIO.Close()
+	createFile.Close()
+
+	if err := os.Chtimes(filepath.Join(rootPath, parentPath, file.Name), file.ModTime, file.ModTime); err != nil {
+		return err
+	}
+
+	h.DB.Save(&file)
 	return err
 }
 
@@ -201,6 +207,175 @@ func (h *Handle) GetDeleteID(fw fsn.FsEventWithID) (*ent.Dir, *ent.File) {
 	return nil, nil
 }
 
+func (h *Handle) awd(stat os.FileInfo, event fsn.FsEventWithID, a *[3]string, file *ent.File, dir *ent.Dir) error {
+
+	if stat == nil {
+		log.Println("该名之前的路径", event.Path())
+		if dir, file = h.GetDeleteID(event); file == nil && dir == nil {
+			log.Println(event.Path(), "no found")
+			return errors.New("aaa")
+		}
+
+		log.Println("等到改名之前的的夫路径", filepath.Dir(event.Path()))
+		a[0] = filepath.Dir(event.Path())
+		return nil
+	}
+
+	log.Println("该名之后的路径", event.Path())
+	a[1] = filepath.Dir(event.Path())
+
+	if stat.IsDir() {
+		a[2] = event.AbsPath + PathSeparator
+	} else {
+		a[2] = filepath.Base(event.Path())
+	}
+
+	return nil
+}
+
+func (h *Handle) Rename(eventChan chan fsn.FsEventWithID) {
+	var a [3]string
+	var file *ent.File
+	var dir *ent.Dir
+
+	for {
+		event := <-eventChan
+		stat, _ := os.Stat(event.Path())
+		if err := h.awd(stat, event, &a, file, dir); err != nil {
+			continue
+		}
+		log.Println("第一次检测")
+
+		timer := time.NewTimer(time.Second * 2)
+		select {
+		case event2 := <-eventChan:
+			if err := h.awd(stat, event2, &a, file, dir); err != nil {
+				continue
+			}
+			log.Println("第二次检测")
+		case <-timer.C:
+			continue
+		}
+
+		log.Println(a[0])
+		log.Println(a[1])
+		log.Println(a[2])
+
+		if dir != nil || file != nil {
+			log.Println("dir or file is ok")
+		}
+
+		if a[0] == a[1] {
+			if file != nil {
+				file.Name = a[2]
+				h.HttpClient.FileRename(*file)
+			} else {
+				dir.Dir = a[2]
+				h.HttpClient.DirRename(*dir)
+			}
+		}
+		file, dir = nil, nil
+
+	}
+}
+
+//func (h *Handle) Rename(eventChan chan fsn.FsEventWithID) {
+//
+//	var f [2]*ent.File
+//	//var changeFile string
+//	var d [2]*ent.Dir
+//	//var changeDir string
+//
+//	for  {
+//		event := <-eventChan
+//		stat, _ := os.Stat(event.Path())
+//
+//		if stat == nil {
+//
+//			dir, file := h.GetDeleteID(event)
+//			if dir != nil {
+//				d[0] = dir
+//			} else if file != nil {
+//				f[0] = file
+//			} else {
+//				log.Println("重命名未找到")
+//			}
+//
+//			continue
+//		}
+//
+//		if stat.IsDir() {
+//			changeDir = event.Path()
+//		}
+//		changeFile = event.Path()
+//
+//		select {
+//		event:
+//
+
+//	var f *ent.File
+//	var changeFile string
+//	var d *ent.Dir
+//	var changeDir string
+//
+//	for {
+//		event := <-eventChan
+//		stat, _ := os.Stat(event.Path())
+//
+//		if stat == nil {
+//
+//			dir, file := h.GetDeleteID(event)
+//			if dir != nil {
+//				d = dir
+//			} else if file != nil {
+//				f = file
+//			} else {
+//				log.Println("重命名未找到")
+//			}
+//
+//			continue
+//		}
+//
+//		if stat.IsDir() {
+//			changeDir = event.Path()
+//		}
+//		changeFile = event.Path()
+//
+//		if f != nil && changeFile != "" {
+//			filepath.Dir()
+//
+//			continue
+//		}
+//
+//		if d != nil && changeDir != "" {
+//
+//			continue
+//		}
+//
+//		if stat.IsDir() {
+//			if d[0] != nil {
+//				d[0].Dir = event.AbsPath + "/"
+//				err := h.HttpClient.DirRename(*d[0])
+//				if err != nil {
+//					log.Println(err)
+//				}
+//			}
+//			d[0], d[1] = nil, nil
+//			continue
+//		}
+//
+//		if f[0] != nil {
+//			f[0].Name = stat.Name()
+//			err := h.HttpClient.FileRename(*f[0])
+//			if err != nil {
+//				log.Println(err)
+//			}
+//		}
+//		f[0], f[1] = nil, nil
+//
+//	}
+//}
+
 func (h *Handle) PressLocalChange(eventChan chan fsn.FsEventWithID, errChan chan error) {
 	for {
 		e := <-eventChan
@@ -229,12 +404,9 @@ func (h *Handle) PressLocalChange(eventChan chan fsn.FsEventWithID, errChan chan
 			} else {
 				errChan <- errors.New("未找到删除的文件或者文件夹的位置" + e.Path())
 			}
-		case notify.Rename:
-			//var ty [2]fsn.FsEventWithID
-			//ty[len(ty)] = e
-
+			//case notify.Rename:
+			//	 h.Rename(e)
 		}
-
 	}
 
 }

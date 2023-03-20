@@ -19,16 +19,15 @@ import (
 type Handle struct {
 	HttpClient *httpclient.Client
 	DB         *gorm.DB
-	//Lock       *ignore.Lock
+	Ignore     *ignore.Ignore
 }
 
-// lock *ignore.Lock
-func NewHandle(c *httpclient.Client, db *gorm.DB) *Handle {
-
+// NewHandle create a handle
+func NewHandle(c *httpclient.Client, db *gorm.DB, ignore *ignore.Ignore) *Handle {
 	return &Handle{
 		HttpClient: c,
 		DB:         db,
-		//Lock:       lock,
+		Ignore:     ignore,
 	}
 }
 
@@ -122,6 +121,9 @@ func (h *Handle) GetSyncTaskToDownload(syncID, path string) error {
 				file.Close()
 			}
 			fileIO.Close()
+
+			os.Chtimes(path+dir.Dir+files[i].Name, files[i].ModTime, files[i].ModTime)
+
 			time.Sleep(time.Millisecond * 500)
 			ignore.Lock.Delete(path + dir.Dir + files[i].Name)
 		}

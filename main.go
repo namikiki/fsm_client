@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"fsm_client/pkg/config"
 	"fsm_client/pkg/database"
@@ -19,9 +20,8 @@ import (
 
 func Init() (int64, *types.Config) {
 	cfg, _ := config.ReadConfigFile()
-	log.Println(cfg)
 	cfg.Device.ClientID = uuid.NewString()
-
+	log.Println(cfg)
 	return 100, cfg
 }
 
@@ -34,7 +34,6 @@ func main() {
 			Init,
 			config.NewIgnoreConfig,
 			ignore.NewIgnore,
-			//ignore.NewLock,
 			fsn.NewWatchManger,
 
 			mock.NewRegis,
@@ -69,9 +68,11 @@ func main() {
 				go sync.ListenCloudDataChanges()
 			},
 
-			//func(sync *sync.Syncer) {
-			//	sync.CreateSyncTask("test", "/Users/zylzyl/Desktop/markdown/synctest/res")
-			//},
+			func(sync *sync.Syncer) {
+				if os.Args[1] != "sla" {
+					sync.CreateSyncTask("test", "/Users/zylzyl/go/src/fsm_client/test/client1/src")
+				}
+			},
 
 			//func(sync *sync.Syncer) {
 			//	sync.RestoreSyncTask("bda5ffca-947b-4456-93a5-043f91466273", "/Users/zylzyl/Desktop/markdown/synctest/tyu")

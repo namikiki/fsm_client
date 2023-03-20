@@ -11,13 +11,17 @@ import (
 func Init() *Client {
 	cfg, _ := config.ReadConfigFile()
 
+	regis := mock.NewRegis()
 	client := NewClient(cfg)
+	err := client.Register(regis)
+	if err != nil {
+		log.Println(err)
+	}
 
 	account := mock.NewAccount()
 	if err := client.Login(account); err != nil {
 		log.Println(err)
 	}
-
 	return client
 }
 
@@ -49,4 +53,21 @@ func TestGetAllDirBySyncID(t *testing.T) {
 		log.Println(err)
 	}
 	log.Println(dirs)
+}
+
+func TestDirRname(t *testing.T) {
+	client := Init()
+
+	newDir := mock.NewDir()
+
+	err := client.DirCreate(&newDir)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	newDir.Dir = "/root/dir/test"
+
+	err = client.DirRename(newDir)
+	log.Println(err)
 }

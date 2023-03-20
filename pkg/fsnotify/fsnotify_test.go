@@ -3,6 +3,7 @@ package fsn
 import (
 	"log"
 	"testing"
+	"time"
 
 	"github.com/rjeczalik/notify"
 )
@@ -79,6 +80,22 @@ func TestOTH(t *testing.T) {
 		case event := <-c:
 			log.Println(event.Event().String(), event.Path())
 		}
+	}
+}
+
+func TestName2(t *testing.T) {
+
+	dad := make(chan int, 2)
+	timer := time.NewTimer(time.Second * 2)
+	dad <- 1
+
+	select {
+	case i := <-dad:
+		log.Println("s")
+		time.Sleep(time.Second * 4)
+		log.Println(i)
+	case t := <-timer.C:
+		log.Println(t)
 	}
 
 }

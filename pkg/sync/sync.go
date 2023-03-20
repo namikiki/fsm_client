@@ -2,7 +2,9 @@ package sync
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
+	"strings"
 	"time"
 
 	//"time"
@@ -10,6 +12,7 @@ import (
 	"fsm_client/pkg/ent"
 	"fsm_client/pkg/handle"
 	"fsm_client/pkg/httpclient"
+	"fsm_client/pkg/ignore"
 	"fsm_client/pkg/types"
 
 	"fsm_client/pkg/fsnotify"
@@ -47,10 +50,14 @@ func (s *Syncer) ListenLocalChanges() error {
 		if err != nil {
 			return err
 		}
-		s.WatchManger.AddChannel <- watch
+		s.WatchManger.AddNotifyChannel <- watch
 	}
 
-	s.Handle.PressLocalChange(s.WatchManger.EventWithIDChan, s.WatchManger.ErrBuffChannel)
+	for i := 0; i < 3; i++ {
+		go s.Handle.PressLocalChange(s.WatchManger.EventWithIDChan, s.WatchManger.ErrBuffChannel)
+	}
+	s.Handle.Rename(s.WatchManger.RenameChannel)
+
 	return nil
 }
 
@@ -75,23 +82,41 @@ func (s *Syncer) ListenCloudDataChanges() error {
 			continue
 		}
 
+		if _, ok := s.SyncTask[psm.SyncID]; !ok && psm.Type != "syncTask" {
+			log.Println("未知消息，屏蔽", psm.Type, psm.Action)
+			continue
+		}
+
 		switch psm.Type {
 		case "file":
 			var file ent.File
 			var dir ent.Dir
 			json.Unmarshal(psm.Data, &file)
 			s.DB.Where("id = ?", file.ParentDirID).Find(&dir)
+			ignore.Lock.Store(s.SyncTask[file.SyncID]+dir.Dir+file.Name, 1)
 
-			if psm.Action == "update" || psm.Action == "create" {
-				s.Handle.FileWrite(file, dir.Dir, s.SyncTask[file.SyncID])
-			} else {
-				s.Handle.FileDelete(file, dir.Dir, s.SyncTask[file.SyncID])
-			}
+			s.Handle.FileChange(psm.Action, file, dir.Dir, s.SyncTask[file.SyncID])
+
+			//if psm.Action == "update" || psm.Action == "create" {
+			//	log.Println(file.Name, psm.Action)
+			//	err := s.Handle.FileWrite(file, dir.Dir, s.SyncTask[file.SyncID])
+			//	if err != nil {
+			//		log.Println(err)
+			//	}
+			//} else {
+			//	err := s.Handle.FileDelete(file, dir.Dir, s.SyncTask[file.SyncID])
+			//	if err != nil {
+			//		log.Println(err)
+			//	}
+			//}
+			time.Sleep(time.Millisecond * 500)
+			ignore.Lock.Delete(s.SyncTask[file.SyncID] + dir.Dir + file.Name)
 
 		case "dir":
 
 			var dir ent.Dir
 			json.Unmarshal(psm.Data, &dir)
+
 			if psm.Action == "create" {
 				s.Handle.DirCreate(dir, s.SyncTask[dir.SyncID])
 			} else {
@@ -103,7 +128,16 @@ func (s *Syncer) ListenCloudDataChanges() error {
 			json.Unmarshal(psm.Data, &synctask)
 
 			if psm.Action == "create" {
+				log.Println(synctask)
+
+				time.Sleep(time.Second * 3)
+				synctask.RootDir = "/Users/zylzyl/go/src/fsm_client/test/client2/dst"
 				s.Handle.SyncTaskCreate(synctask)
+				s.SyncTask[synctask.ID] = synctask.RootDir
+				err := s.RestoreSyncTask(synctask.ID, synctask.RootDir)
+				if err != nil {
+					log.Println("cloud syncTask", err)
+				}
 			} else {
 				s.Handle.SyncTaskDelete(synctask)
 			}
@@ -133,6 +167,19 @@ func (s *Syncer) CreateSyncTask(name, root string) error {
 		CreateTime: time.Now(),
 	}
 
+	var gs []ent.SyncTask
+	s.DB.Find(&gs)
+	for _, st := range gs {
+		if prefix := strings.HasPrefix(task.RootDir, st.RootDir); prefix {
+			return errors.New("不能添加子目录")
+		}
+
+		// todo add "/" or "\"
+		if prefix := strings.HasPrefix(st.RootDir, task.RootDir); prefix {
+			return errors.New("不能添加父目录")
+		}
+	}
+
 	if err := s.httpClient.SyncTaskCreate(&task); err != nil {
 		return err
 	}
@@ -147,7 +194,8 @@ func (s *Syncer) CreateSyncTask(name, root string) error {
 		return err
 	}
 
-	s.WatchManger.AddChannel <- watch
+	s.SyncTask[task.ID] = task.RootDir
+	s.WatchManger.AddNotifyChannel <- watch
 	return err
 }
 
@@ -199,6 +247,6 @@ func (s *Syncer) RestoreSyncTask(taskID, path string) error {
 	if err != nil {
 		return err
 	}
-	s.WatchManger.AddChannel <- watch
+	s.WatchManger.AddNotifyChannel <- watch
 	return err
 }

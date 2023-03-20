@@ -100,6 +100,7 @@ func NewIgnoreConfig() (*types.Ignore, error) {
 
 	var ignore types.Ignore
 	_, err := toml.DecodeFile(ignorePath, &ignore)
+
 	log.Println("ignore :", ignore)
 
 	return &ignore, err

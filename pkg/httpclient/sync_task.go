@@ -7,7 +7,7 @@ import (
 )
 
 func (c *Client) SyncTaskCreate(task *ent.SyncTask) error {
-	resp, err := c.deserialization("POST", "/synctask/create", task)
+	resp, err := c.deserialization("POST", "/synctask", task)
 	if err != nil {
 		return err
 	}
@@ -16,13 +16,13 @@ func (c *Client) SyncTaskCreate(task *ent.SyncTask) error {
 
 func (c *Client) SyncTaskDelete(syncID string) error {
 	//var sts []ent.SyncTask
-	_, err := c.deserialization("GET", "/synctask/delete/"+syncID, nil)
+	_, err := c.deserialization("DELETE", "/synctask/"+syncID, nil)
 	return err
 }
 
 func (c *Client) SyncTaskGetAll() ([]ent.SyncTask, error) {
 	var sts []ent.SyncTask
-	resp, err := c.deserialization("GET", "/synctask/getAll", nil)
+	resp, err := c.deserialization("GET", "/synctasks", nil)
 	if err != nil {
 		return nil, err
 	}

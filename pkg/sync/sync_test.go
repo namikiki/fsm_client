@@ -3,6 +3,7 @@ package sync
 import (
 	"log"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -36,5 +37,15 @@ func TestName(t *testing.T) {
 	//log.Println(stat)
 
 	log.Println(filepath.Join("/Users/zylzyl/go/src/fsm_client/pkg/mock", "..."))
+
+}
+
+func BenchmarkName(b *testing.B) {
+
+	s := "/root/dir1/sub1"
+
+	for i := 0; i < b.N; i++ {
+		log.Println(strings.HasPrefix(s, "/root/dir1"))
+	}
 
 }
