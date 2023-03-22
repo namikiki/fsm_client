@@ -79,8 +79,8 @@ func (c *Checker) GetDriveFileAndDir(syncTasks map[string]string) {
 					Dir:        path + "/", // todo Split
 					Level:      uint64(len(strings.Split(path, "/"))),
 					Deleted:    false,
-					CreateTime: time.Now(),
-					ModTime:    time.Now(),
+					CreateTime: time.Now().Unix(),
+					ModTime:    time.Now().Unix(),
 				}
 
 				c.insertDir(DriveDir, dir)
@@ -100,8 +100,8 @@ func (c *Checker) GetDriveFileAndDir(syncTasks map[string]string) {
 				Level:       uint64(level),
 				Size:        info.Size(),
 				Deleted:     false,
-				CreateTime:  time.Now(),
-				ModTime:     info.ModTime(),
+				CreateTime:  time.Now().Unix(),
+				ModTime:     info.ModTime().Unix(),
 			}
 
 			c.insertFile(DriveFile, file)
@@ -172,7 +172,7 @@ func (c *Checker) GetDirChange(syncTask map[string]string) error {
 		ch <- 1
 	}()
 
-	database.ResetTable(c.MemDB)
+	database.ResetDirTable(c.MemDB)
 	c.DB.Find(&dirs)
 	c.insertDirs(DBDir, dirs)
 
@@ -226,12 +226,12 @@ func (c *Checker) GetFileChange(syncTask map[string]string) error {
 	c.insertFiles(DBFile, files)
 
 	var fileAdd, fileDelete, fileUpdate []ent.File
-	if err := c.MemDB.Select(&fileAdd, GetFileChange(DBFile, DriveFile)); err != nil {
+	if err := c.MemDB.Select(&fileDelete, GetFileChange(DBFile, DriveFile)); err != nil {
 		log.Println(err)
 		return err
 	}
 
-	if err := c.MemDB.Select(&fileDelete, GetFileChange(DriveFile, DBFile)); err != nil {
+	if err := c.MemDB.Select(&fileAdd, GetFileChange(DriveFile, DBFile)); err != nil {
 		log.Println(err)
 		return err
 	}
@@ -245,18 +245,20 @@ func (c *Checker) GetFileChange(syncTask map[string]string) error {
 	log.Println("local file delete", fileDelete)
 	log.Println("local file update", fileUpdate)
 
-	return nil
-	var dir ent.Dir
 	for _, file := range fileAdd {
-
+		var dir ent.Dir
 		c.DB.Where("sync_id = ? and dir = ? ", file.SyncID, file.ParentDirID).Find(&dir)
 		file.ParentDirID = dir.ID
-		fileIO, err := os.Open(syncTask[file.SyncID] + file.ParentDirID + file.Name)
+		fileIO, err := os.Open(syncTask[file.SyncID] + dir.Dir + file.Name)
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 
-		c.Client.FileCreate(&file, fileIO)
+		err = c.Client.FileCreate(&file, fileIO)
+		if err != nil {
+			return err
+		}
 		c.DB.Create(&file)
 	}
 
@@ -264,83 +266,112 @@ func (c *Checker) GetFileChange(syncTask map[string]string) error {
 		if err := c.Client.FileDelete(file); err != nil {
 			return err
 		}
-
 		c.DB.Delete(&file)
 	}
 
-	//for i, i2 := range collection {
-	//
-	//}
+	for _, file := range fileUpdate {
+		var dir ent.Dir
+		c.DB.Where("sync_id = ? and id = ? ", file.SyncID, file.ParentDirID).Find(&dir)
+
+		fileIO, err := os.Open(syncTask[file.SyncID] + dir.Dir + file.Name)
+
+		stat, err := fileIO.Stat()
+		file.Size = stat.Size()
+		file.ModTime = stat.ModTime().Unix()
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		err = c.Client.FileUpdate(&file, fileIO)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		log.Println(file)
+
+		c.DB.Save(&file)
+	}
+
+	ch := make(chan int)
+
+	go func() {
+		for k := range syncTask {
+			cloud, err := c.Client.GetAllFileBySyncID(k)
+			err = c.insertFiles(cloudFile, cloud)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
+		ch <- 1
+	}()
+
+	database.ResetFileTable(c.MemDB)
+	c.DB.Find(&files)
+	c.insertFiles(DBFile, files)
+
+	<-ch
+
+	if err := c.MemDB.Select(&fileDelete, GetFileChange(DBFile, cloudFile)); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	if err := c.MemDB.Select(&fileAdd, GetFileChange(cloudFile, DBFile)); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	if err := c.MemDB.Select(&fileUpdate, getFileUpdate(cloudFile, DBFile)); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	log.Println("cloud file add", fileAdd)
+	log.Println("cloud file delete", fileDelete)
+	log.Println("cloud file update", fileUpdate)
+
+	for _, file := range fileAdd {
+		var dir ent.Dir
+		c.DB.Where("sync_id = ? and id = ? ", file.SyncID, file.ParentDirID).Find(&dir)
+
+		err := c.Handle.FileWrite(file, dir.Dir, syncTask[file.SyncID])
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+	}
+
+	for _, file := range fileDelete {
+
+		var dir ent.Dir
+		c.DB.Where("sync_id = ? and id = ? ", file.SyncID, file.ParentDirID).Find(&dir)
+		err := c.Handle.FileDelete(file, dir.Dir, syncTask[file.SyncID])
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		if err := c.Client.FileDelete(file); err != nil {
+			return err
+		}
+		c.DB.Delete(&file)
+	}
+
+	for _, file := range fileUpdate {
+		var dir ent.Dir
+		c.DB.Where("sync_id = ? and id = ? ", file.SyncID, file.ParentDirID).Find(&dir)
+
+		err := c.Handle.FileWrite(file, dir.Dir, syncTask[file.SyncID])
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
 	return nil
 }
-
-//func (c *Checker) GetDidAndFileChange() {
-//	var s ent.SyncTask
-//	c.DB.Find(&s)
-//
-//	var localdir []ent.Dir
-//	c.DB.Find(&localdir)
-//	c.DB.Create(&localdir)
-//
-//	return
-//
-//	var localfile []ent.File
-//	c.DB.Find(&localfile)
-//	c.MemDB.Model(&database.LocalFile{}).Create(&localfile)
-//
-//	rootPathLen := len(s.RootDir)
-//	err := filepath.WalkDir(s.RootDir, func(path string, d fs.DirEntry, err error) error {
-//
-//		path = path[rootPathLen:]
-//
-//		if d.IsDir() {
-//
-//			dir := ent.Dir{
-//				SyncID:     s.ID,
-//				Dir:        path + "/", // todo Split
-//				Level:      uint64(len(strings.Split(path, "/"))),
-//				Deleted:    false,
-//				CreateTime: time.Now(),
-//				ModTime:    time.Now(),
-//			}
-//
-//			c.MemDB.Model(&database.NowDir{}).Create(&dir)
-//			return err
-//		}
-//
-//		level := len(strings.Split(path, "/"))
-//		suffix := strings.TrimSuffix(path, d.Name())
-//		var dir ent.Dir
-//		c.MemDB.Where("dir = ? and level = ?", suffix, level-1).Find(&dir)
-//
-//		info, _ := d.Info()
-//		file := ent.File{
-//			SyncID:      s.ID,
-//			Name:        d.Name(),
-//			ParentDirID: dir.ID,
-//			Level:       uint64(level),
-//			Size:        info.Size(),
-//			Deleted:     false,
-//			CreateTime:  time.Now(),
-//			ModTime:     info.ModTime(),
-//		}
-//		c.MemDB.Model(&database.NowFile{}).Create(&file)
-//		return err
-//	})
-//	if err != nil {
-//		log.Println(err)
-//	}
-//
-//	dirs, err := c.Client.GetAllDirBySyncID(s.ID)
-//	if err != nil {
-//		return
-//	}
-//	c.MemDB.Model(&database.CloudDir{}).Create(&dirs)
-//
-//	files, err := c.Client.GetAllFileBySyncID(s.ID)
-//	if err != nil {
-//		return
-//	}
-//	c.MemDB.Model(&database.CloudFile{}).Create(&files)
-//
-//}

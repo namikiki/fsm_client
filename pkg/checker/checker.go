@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"fsm_client/pkg/ent"
+	"fsm_client/pkg/handle"
 	"fsm_client/pkg/httpclient"
 	"fsm_client/pkg/ignore"
 
@@ -16,14 +17,15 @@ type Checker struct {
 	DB     *gorm.DB
 	Client *httpclient.Client
 	//Ignore     ignore.Ignore
-
+	Handle *handle.Handle
 }
 
-func NewChecker(memdb *sqlx.DB, db *gorm.DB, client *httpclient.Client, ignore *ignore.Ignore) *Checker {
+func NewChecker(memdb *sqlx.DB, db *gorm.DB, client *httpclient.Client, handle *handle.Handle, ignore *ignore.Ignore) *Checker {
 	return &Checker{
 		MemDB:  memdb,
 		DB:     db,
 		Client: client,
+		Handle: handle,
 		//Ignore:     ignore,
 	}
 }
@@ -55,7 +57,7 @@ var (
 	}
 
 	getFileUpdate = func(lt, rt string) string {
-		return fmt.Sprintf("SELECT %s.* FROM %s LEFT JOIN %s ON %s.name = %s.name and %s.sync_id = %s.sync_id and %s.level = %s.level  WHERE  %s.size != %s.size;",
+		return fmt.Sprintf("SELECT %s.* FROM %s LEFT JOIN %s ON %s.name = %s.name and %s.sync_id = %s.sync_id and %s.level = %s.level  WHERE  %s.mod_time != %s.mod_time;",
 			lt, lt, rt, lt, rt, lt, rt, lt, rt, lt, rt)
 	}
 	//

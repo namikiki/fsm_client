@@ -6,6 +6,7 @@ import (
 
 	"fsm_client/pkg/config"
 	"fsm_client/pkg/database"
+	"fsm_client/pkg/handle"
 	"fsm_client/pkg/httpclient"
 	"fsm_client/pkg/mock"
 
@@ -23,6 +24,9 @@ func initCheck() *Checker {
 	Client := httpclient.NewClient(cfg)
 
 	regis := mock.NewRegis()
+
+	handle := handle.NewHandle(Client, db, nil)
+
 	err := Client.Register(regis)
 	if err != nil {
 		log.Println(err)
@@ -34,7 +38,7 @@ func initCheck() *Checker {
 		log.Println(err)
 	}
 
-	checker := NewChecker(memoryDB, db, Client, nil)
+	checker := NewChecker(memoryDB, db, Client, handle, nil)
 	return checker
 }
 

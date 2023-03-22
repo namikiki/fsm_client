@@ -16,7 +16,7 @@ type SyncTask struct {
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// UserID holds the value of the "user_id" field.
-	UserID string `json:"user_id,omitempty"`
+	UserID string `json:"user_id,omitempty" db:"sync_id" `
 	// Type holds the value of the "type" field.
 	Type string `json:"type,omitempty"`
 	// Name holds the value of the "name" field.
@@ -26,7 +26,7 @@ type SyncTask struct {
 	// Deleted holds the value of the "deleted" field.
 	Deleted bool `json:"deleted,omitempty"`
 	// CreateTime holds the value of the "create_time" field.
-	CreateTime int64 `json:"create_time,omitempty"`
+	CreateTime int64 `json:"create_time,omitempty" db:"create_time" `
 }
 
 // scanValues returns the types for scanning values from sql.Rows.

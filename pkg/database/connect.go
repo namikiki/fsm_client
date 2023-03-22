@@ -50,20 +50,25 @@ func memDBMigrate(db *sqlx.DB) {
 	db.MustExec(createCloudFile)
 }
 
-func ResetTable(db *sqlx.DB) {
-	db.MustExec(dropSql)
+func ResetDirTable(db *sqlx.DB) {
+	db.MustExec(dropDirSql)
 	db.MustExec(createDBDir)
 }
 
+func ResetFileTable(db *sqlx.DB) {
+	db.MustExec(dropFileSql)
+	db.MustExec(createDBFile)
+}
+
 func NewSqliteMemoryDB() *sqlx.DB {
-	//"file::memory:?cache=shared"
-	db, err := sqlx.Connect("sqlite3", "test.db")
+	//
+	db, err := sqlx.Connect("sqlite3", "file::memory:?cache=shared")
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	memDBMigrate(db)
-	ResetTable(db)
+	ResetDirTable(db)
 	return db
 }
 
