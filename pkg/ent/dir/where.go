@@ -4,7 +4,6 @@ package dir
 
 import (
 	"fsm_client/pkg/ent/predicate"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
@@ -75,12 +74,12 @@ func Deleted(v bool) predicate.Dir {
 }
 
 // CreateTime applies equality check predicate on the "create_time" field. It's identical to CreateTimeEQ.
-func CreateTime(v time.Time) predicate.Dir {
+func CreateTime(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldEQ(FieldCreateTime, v))
 }
 
 // ModTime applies equality check predicate on the "mod_time" field. It's identical to ModTimeEQ.
-func ModTime(v time.Time) predicate.Dir {
+func ModTime(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldEQ(FieldModTime, v))
 }
 
@@ -265,82 +264,82 @@ func DeletedNEQ(v bool) predicate.Dir {
 }
 
 // CreateTimeEQ applies the EQ predicate on the "create_time" field.
-func CreateTimeEQ(v time.Time) predicate.Dir {
+func CreateTimeEQ(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldEQ(FieldCreateTime, v))
 }
 
 // CreateTimeNEQ applies the NEQ predicate on the "create_time" field.
-func CreateTimeNEQ(v time.Time) predicate.Dir {
+func CreateTimeNEQ(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldNEQ(FieldCreateTime, v))
 }
 
 // CreateTimeIn applies the In predicate on the "create_time" field.
-func CreateTimeIn(vs ...time.Time) predicate.Dir {
+func CreateTimeIn(vs ...int64) predicate.Dir {
 	return predicate.Dir(sql.FieldIn(FieldCreateTime, vs...))
 }
 
 // CreateTimeNotIn applies the NotIn predicate on the "create_time" field.
-func CreateTimeNotIn(vs ...time.Time) predicate.Dir {
+func CreateTimeNotIn(vs ...int64) predicate.Dir {
 	return predicate.Dir(sql.FieldNotIn(FieldCreateTime, vs...))
 }
 
 // CreateTimeGT applies the GT predicate on the "create_time" field.
-func CreateTimeGT(v time.Time) predicate.Dir {
+func CreateTimeGT(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldGT(FieldCreateTime, v))
 }
 
 // CreateTimeGTE applies the GTE predicate on the "create_time" field.
-func CreateTimeGTE(v time.Time) predicate.Dir {
+func CreateTimeGTE(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldGTE(FieldCreateTime, v))
 }
 
 // CreateTimeLT applies the LT predicate on the "create_time" field.
-func CreateTimeLT(v time.Time) predicate.Dir {
+func CreateTimeLT(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldLT(FieldCreateTime, v))
 }
 
 // CreateTimeLTE applies the LTE predicate on the "create_time" field.
-func CreateTimeLTE(v time.Time) predicate.Dir {
+func CreateTimeLTE(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldLTE(FieldCreateTime, v))
 }
 
 // ModTimeEQ applies the EQ predicate on the "mod_time" field.
-func ModTimeEQ(v time.Time) predicate.Dir {
+func ModTimeEQ(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldEQ(FieldModTime, v))
 }
 
 // ModTimeNEQ applies the NEQ predicate on the "mod_time" field.
-func ModTimeNEQ(v time.Time) predicate.Dir {
+func ModTimeNEQ(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldNEQ(FieldModTime, v))
 }
 
 // ModTimeIn applies the In predicate on the "mod_time" field.
-func ModTimeIn(vs ...time.Time) predicate.Dir {
+func ModTimeIn(vs ...int64) predicate.Dir {
 	return predicate.Dir(sql.FieldIn(FieldModTime, vs...))
 }
 
 // ModTimeNotIn applies the NotIn predicate on the "mod_time" field.
-func ModTimeNotIn(vs ...time.Time) predicate.Dir {
+func ModTimeNotIn(vs ...int64) predicate.Dir {
 	return predicate.Dir(sql.FieldNotIn(FieldModTime, vs...))
 }
 
 // ModTimeGT applies the GT predicate on the "mod_time" field.
-func ModTimeGT(v time.Time) predicate.Dir {
+func ModTimeGT(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldGT(FieldModTime, v))
 }
 
 // ModTimeGTE applies the GTE predicate on the "mod_time" field.
-func ModTimeGTE(v time.Time) predicate.Dir {
+func ModTimeGTE(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldGTE(FieldModTime, v))
 }
 
 // ModTimeLT applies the LT predicate on the "mod_time" field.
-func ModTimeLT(v time.Time) predicate.Dir {
+func ModTimeLT(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldLT(FieldModTime, v))
 }
 
 // ModTimeLTE applies the LTE predicate on the "mod_time" field.
-func ModTimeLTE(v time.Time) predicate.Dir {
+func ModTimeLTE(v int64) predicate.Dir {
 	return predicate.Dir(sql.FieldLTE(FieldModTime, v))
 }
 

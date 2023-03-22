@@ -4,7 +4,6 @@ package synctask
 
 import (
 	"fsm_client/pkg/ent/predicate"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
@@ -80,7 +79,7 @@ func Deleted(v bool) predicate.SyncTask {
 }
 
 // CreateTime applies equality check predicate on the "create_time" field. It's identical to CreateTimeEQ.
-func CreateTime(v time.Time) predicate.SyncTask {
+func CreateTime(v int64) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldEQ(FieldCreateTime, v))
 }
 
@@ -355,42 +354,42 @@ func DeletedNEQ(v bool) predicate.SyncTask {
 }
 
 // CreateTimeEQ applies the EQ predicate on the "create_time" field.
-func CreateTimeEQ(v time.Time) predicate.SyncTask {
+func CreateTimeEQ(v int64) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldEQ(FieldCreateTime, v))
 }
 
 // CreateTimeNEQ applies the NEQ predicate on the "create_time" field.
-func CreateTimeNEQ(v time.Time) predicate.SyncTask {
+func CreateTimeNEQ(v int64) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldNEQ(FieldCreateTime, v))
 }
 
 // CreateTimeIn applies the In predicate on the "create_time" field.
-func CreateTimeIn(vs ...time.Time) predicate.SyncTask {
+func CreateTimeIn(vs ...int64) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldIn(FieldCreateTime, vs...))
 }
 
 // CreateTimeNotIn applies the NotIn predicate on the "create_time" field.
-func CreateTimeNotIn(vs ...time.Time) predicate.SyncTask {
+func CreateTimeNotIn(vs ...int64) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldNotIn(FieldCreateTime, vs...))
 }
 
 // CreateTimeGT applies the GT predicate on the "create_time" field.
-func CreateTimeGT(v time.Time) predicate.SyncTask {
+func CreateTimeGT(v int64) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldGT(FieldCreateTime, v))
 }
 
 // CreateTimeGTE applies the GTE predicate on the "create_time" field.
-func CreateTimeGTE(v time.Time) predicate.SyncTask {
+func CreateTimeGTE(v int64) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldGTE(FieldCreateTime, v))
 }
 
 // CreateTimeLT applies the LT predicate on the "create_time" field.
-func CreateTimeLT(v time.Time) predicate.SyncTask {
+func CreateTimeLT(v int64) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldLT(FieldCreateTime, v))
 }
 
 // CreateTimeLTE applies the LTE predicate on the "create_time" field.
-func CreateTimeLTE(v time.Time) predicate.SyncTask {
+func CreateTimeLTE(v int64) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldLTE(FieldCreateTime, v))
 }
 

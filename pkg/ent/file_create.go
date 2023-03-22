@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"fsm_client/pkg/ent/file"
-	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -63,14 +62,14 @@ func (fc *FileCreate) SetDeleted(b bool) *FileCreate {
 }
 
 // SetCreateTime sets the "create_time" field.
-func (fc *FileCreate) SetCreateTime(t time.Time) *FileCreate {
-	fc.mutation.SetCreateTime(t)
+func (fc *FileCreate) SetCreateTime(i int64) *FileCreate {
+	fc.mutation.SetCreateTime(i)
 	return fc
 }
 
 // SetModTime sets the "mod_time" field.
-func (fc *FileCreate) SetModTime(t time.Time) *FileCreate {
-	fc.mutation.SetModTime(t)
+func (fc *FileCreate) SetModTime(i int64) *FileCreate {
+	fc.mutation.SetModTime(i)
 	return fc
 }
 
@@ -205,11 +204,11 @@ func (fc *FileCreate) createSpec() (*File, *sqlgraph.CreateSpec) {
 		_node.Deleted = value
 	}
 	if value, ok := fc.mutation.CreateTime(); ok {
-		_spec.SetField(file.FieldCreateTime, field.TypeTime, value)
+		_spec.SetField(file.FieldCreateTime, field.TypeInt64, value)
 		_node.CreateTime = value
 	}
 	if value, ok := fc.mutation.ModTime(); ok {
-		_spec.SetField(file.FieldModTime, field.TypeTime, value)
+		_spec.SetField(file.FieldModTime, field.TypeInt64, value)
 		_node.ModTime = value
 	}
 	return _node, _spec

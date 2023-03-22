@@ -12,7 +12,6 @@ import (
 	"fsm_client/pkg/ent"
 	"fsm_client/pkg/handle"
 	"fsm_client/pkg/httpclient"
-	"fsm_client/pkg/ignore"
 	"fsm_client/pkg/types"
 
 	"fsm_client/pkg/fsnotify"
@@ -89,12 +88,12 @@ func (s *Syncer) ListenCloudDataChanges() error {
 
 		switch psm.Type {
 		case "file":
+
 			var file ent.File
 			var dir ent.Dir
 			json.Unmarshal(psm.Data, &file)
-			s.DB.Where("id = ?", file.ParentDirID).Find(&dir)
-			ignore.Lock.Store(s.SyncTask[file.SyncID]+dir.Dir+file.Name, 1)
 
+			s.DB.Where("id = ?", file.ParentDirID).Find(&dir)
 			s.Handle.FileChange(psm.Action, file, dir.Dir, s.SyncTask[file.SyncID])
 
 			//if psm.Action == "update" || psm.Action == "create" {
@@ -109,19 +108,12 @@ func (s *Syncer) ListenCloudDataChanges() error {
 			//		log.Println(err)
 			//	}
 			//}
-			time.Sleep(time.Millisecond * 500)
-			ignore.Lock.Delete(s.SyncTask[file.SyncID] + dir.Dir + file.Name)
 
 		case "dir":
 
 			var dir ent.Dir
 			json.Unmarshal(psm.Data, &dir)
-
-			if psm.Action == "create" {
-				s.Handle.DirCreate(dir, s.SyncTask[dir.SyncID])
-			} else {
-				s.Handle.DirDelete(dir, s.SyncTask[dir.SyncID])
-			}
+			s.Handle.DirChange(psm.Action, dir, s.SyncTask[dir.SyncID])
 
 		case "syncTask":
 			var synctask ent.SyncTask
@@ -143,7 +135,7 @@ func (s *Syncer) ListenCloudDataChanges() error {
 			}
 
 		default:
-			log.Println(psm)
+			log.Println("未知事件", psm.Type, psm.Action, psm.SyncID)
 		}
 
 	}
@@ -164,7 +156,7 @@ func (s *Syncer) CreateSyncTask(name, root string) error {
 		Name:       name,
 		RootDir:    root,
 		Deleted:    false,
-		CreateTime: time.Now(),
+		CreateTime: time.Now().Unix(),
 	}
 
 	var gs []ent.SyncTask

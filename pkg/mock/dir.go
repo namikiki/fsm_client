@@ -13,7 +13,7 @@ func NewDir() ent.Dir {
 		Dir:        "/synctest",
 		Level:      233,
 		Deleted:    false,
-		CreateTime: time.Now(),
-		ModTime:    time.Now(),
+		CreateTime: time.Now().Unix(),
+		ModTime:    time.Now().Unix(),
 	}
 }

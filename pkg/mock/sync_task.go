@@ -12,7 +12,7 @@ func NewSyncTask() ent.SyncTask {
 		Name:       "mediawa",
 		RootDir:    "/dawdawdaw",
 		Deleted:    false,
-		CreateTime: time.Now(),
+		CreateTime: time.Now().Unix(),
 	}
 }
 func df() {

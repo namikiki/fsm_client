@@ -6,6 +6,7 @@ import (
 
 	"fsm_client/pkg/ent"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 
 	"gorm.io/driver/sqlite"
@@ -38,3 +39,44 @@ func NewGormSQLiteConnect() *gorm.DB {
 
 	return db
 }
+
+func memDBMigrate(db *sqlx.DB) {
+	db.MustExec(createDBDir)
+	db.MustExec(createDriveDir)
+	db.MustExec(createCloudDir)
+
+	db.MustExec(createDBFile)
+	db.MustExec(createDriveFile)
+	db.MustExec(createCloudFile)
+}
+
+func ResetTable(db *sqlx.DB) {
+	db.MustExec(dropSql)
+	db.MustExec(createDBDir)
+}
+
+func NewSqliteMemoryDB() *sqlx.DB {
+	//"file::memory:?cache=shared"
+	db, err := sqlx.Connect("sqlite3", "test.db")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	memDBMigrate(db)
+	ResetTable(db)
+	return db
+}
+
+//func CreateTable(tableName string) {
+//	createTabSql := fmt.Sprintf(createDBDir, tableName)
+//
+//}
+
+//var files []ent.File
+//if err = gm.Select(&files, "SELECT * FROM files"); err != nil {
+//log.Println(err)
+//}
+//log.Println(files)
+//
+//res, err := test.NamedExec(`INSERT INTO local_files (id, sync_id, name,parent_dir_id,level,hash,size,deleted,create_time,mod_time)
+//        VALUES (:id, :sync_id, :name, :parent_dir_id, :level, :hash, :size,:deleted,:create_time,:mod_time)`, files)

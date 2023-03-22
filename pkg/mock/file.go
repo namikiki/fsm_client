@@ -13,7 +13,7 @@ func NewFile() ent.File {
 		Name:        "123",
 		Level:       123,
 		Deleted:     false,
-		CreateTime:  time.Now(),
-		ModTime:     time.Now(),
+		CreateTime:  time.Now().Unix(),
+		ModTime:     time.Now().Unix(),
 	}
 }

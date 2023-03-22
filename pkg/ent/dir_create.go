@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"fsm_client/pkg/ent/dir"
-	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -45,14 +44,14 @@ func (dc *DirCreate) SetDeleted(b bool) *DirCreate {
 }
 
 // SetCreateTime sets the "create_time" field.
-func (dc *DirCreate) SetCreateTime(t time.Time) *DirCreate {
-	dc.mutation.SetCreateTime(t)
+func (dc *DirCreate) SetCreateTime(i int64) *DirCreate {
+	dc.mutation.SetCreateTime(i)
 	return dc
 }
 
 // SetModTime sets the "mod_time" field.
-func (dc *DirCreate) SetModTime(t time.Time) *DirCreate {
-	dc.mutation.SetModTime(t)
+func (dc *DirCreate) SetModTime(i int64) *DirCreate {
+	dc.mutation.SetModTime(i)
 	return dc
 }
 
@@ -166,11 +165,11 @@ func (dc *DirCreate) createSpec() (*Dir, *sqlgraph.CreateSpec) {
 		_node.Deleted = value
 	}
 	if value, ok := dc.mutation.CreateTime(); ok {
-		_spec.SetField(dir.FieldCreateTime, field.TypeTime, value)
+		_spec.SetField(dir.FieldCreateTime, field.TypeInt64, value)
 		_node.CreateTime = value
 	}
 	if value, ok := dc.mutation.ModTime(); ok {
-		_spec.SetField(dir.FieldModTime, field.TypeTime, value)
+		_spec.SetField(dir.FieldModTime, field.TypeInt64, value)
 		_node.ModTime = value
 	}
 	return _node, _spec

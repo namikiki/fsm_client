@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"fsm_client/pkg/ent/predicate"
 	"fsm_client/pkg/ent/synctask"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -59,8 +58,15 @@ func (stu *SyncTaskUpdate) SetDeleted(b bool) *SyncTaskUpdate {
 }
 
 // SetCreateTime sets the "create_time" field.
-func (stu *SyncTaskUpdate) SetCreateTime(t time.Time) *SyncTaskUpdate {
-	stu.mutation.SetCreateTime(t)
+func (stu *SyncTaskUpdate) SetCreateTime(i int64) *SyncTaskUpdate {
+	stu.mutation.ResetCreateTime()
+	stu.mutation.SetCreateTime(i)
+	return stu
+}
+
+// AddCreateTime adds i to the "create_time" field.
+func (stu *SyncTaskUpdate) AddCreateTime(i int64) *SyncTaskUpdate {
+	stu.mutation.AddCreateTime(i)
 	return stu
 }
 
@@ -121,7 +127,10 @@ func (stu *SyncTaskUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.SetField(synctask.FieldDeleted, field.TypeBool, value)
 	}
 	if value, ok := stu.mutation.CreateTime(); ok {
-		_spec.SetField(synctask.FieldCreateTime, field.TypeTime, value)
+		_spec.SetField(synctask.FieldCreateTime, field.TypeInt64, value)
+	}
+	if value, ok := stu.mutation.AddedCreateTime(); ok {
+		_spec.AddField(synctask.FieldCreateTime, field.TypeInt64, value)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, stu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -174,8 +183,15 @@ func (stuo *SyncTaskUpdateOne) SetDeleted(b bool) *SyncTaskUpdateOne {
 }
 
 // SetCreateTime sets the "create_time" field.
-func (stuo *SyncTaskUpdateOne) SetCreateTime(t time.Time) *SyncTaskUpdateOne {
-	stuo.mutation.SetCreateTime(t)
+func (stuo *SyncTaskUpdateOne) SetCreateTime(i int64) *SyncTaskUpdateOne {
+	stuo.mutation.ResetCreateTime()
+	stuo.mutation.SetCreateTime(i)
+	return stuo
+}
+
+// AddCreateTime adds i to the "create_time" field.
+func (stuo *SyncTaskUpdateOne) AddCreateTime(i int64) *SyncTaskUpdateOne {
+	stuo.mutation.AddCreateTime(i)
 	return stuo
 }
 
@@ -266,7 +282,10 @@ func (stuo *SyncTaskUpdateOne) sqlSave(ctx context.Context) (_node *SyncTask, er
 		_spec.SetField(synctask.FieldDeleted, field.TypeBool, value)
 	}
 	if value, ok := stuo.mutation.CreateTime(); ok {
-		_spec.SetField(synctask.FieldCreateTime, field.TypeTime, value)
+		_spec.SetField(synctask.FieldCreateTime, field.TypeInt64, value)
+	}
+	if value, ok := stuo.mutation.AddedCreateTime(); ok {
+		_spec.AddField(synctask.FieldCreateTime, field.TypeInt64, value)
 	}
 	_node = &SyncTask{config: stuo.config}
 	_spec.Assign = _node.assignValues

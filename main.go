@@ -39,7 +39,7 @@ func main() {
 			mock.NewRegis,
 			httpclient.NewClient,
 
-			mock.NewAccount,
+			mock.NewLogin,
 			database.NewGormSQLiteConnect,
 			handle.NewHandle,
 			sync.NewSyncer,
@@ -141,7 +141,7 @@ func master() {
 		log.Println(err)
 	}
 
-	account := mock.NewAccount()
+	account := mock.NewLogin()
 	if err := client.Login(account); err != nil {
 		log.Println(err)
 	}
@@ -176,7 +176,7 @@ func sla() {
 	//	log.Println(err)
 	//}
 
-	account := mock.NewAccount()
+	account := mock.NewLogin()
 	if err := client.Login(account); err != nil {
 		log.Println(err)
 	}

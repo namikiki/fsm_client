@@ -36,20 +36,22 @@ const (
 // DirMutation represents an operation that mutates the Dir nodes in the graph.
 type DirMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	sync_id       *string
-	dir           *string
-	level         *uint64
-	addlevel      *int64
-	deleted       *bool
-	create_time   *time.Time
-	mod_time      *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Dir, error)
-	predicates    []predicate.Dir
+	op             Op
+	typ            string
+	id             *string
+	sync_id        *string
+	dir            *string
+	level          *uint64
+	addlevel       *int64
+	deleted        *bool
+	create_time    *int64
+	addcreate_time *int64
+	mod_time       *int64
+	addmod_time    *int64
+	clearedFields  map[string]struct{}
+	done           bool
+	oldValue       func(context.Context) (*Dir, error)
+	predicates     []predicate.Dir
 }
 
 var _ ent.Mutation = (*DirMutation)(nil)
@@ -321,12 +323,13 @@ func (m *DirMutation) ResetDeleted() {
 }
 
 // SetCreateTime sets the "create_time" field.
-func (m *DirMutation) SetCreateTime(t time.Time) {
-	m.create_time = &t
+func (m *DirMutation) SetCreateTime(i int64) {
+	m.create_time = &i
+	m.addcreate_time = nil
 }
 
 // CreateTime returns the value of the "create_time" field in the mutation.
-func (m *DirMutation) CreateTime() (r time.Time, exists bool) {
+func (m *DirMutation) CreateTime() (r int64, exists bool) {
 	v := m.create_time
 	if v == nil {
 		return
@@ -337,7 +340,7 @@ func (m *DirMutation) CreateTime() (r time.Time, exists bool) {
 // OldCreateTime returns the old "create_time" field's value of the Dir entity.
 // If the Dir object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *DirMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
+func (m *DirMutation) OldCreateTime(ctx context.Context) (v int64, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreateTime is only allowed on UpdateOne operations")
 	}
@@ -351,18 +354,38 @@ func (m *DirMutation) OldCreateTime(ctx context.Context) (v time.Time, err error
 	return oldValue.CreateTime, nil
 }
 
+// AddCreateTime adds i to the "create_time" field.
+func (m *DirMutation) AddCreateTime(i int64) {
+	if m.addcreate_time != nil {
+		*m.addcreate_time += i
+	} else {
+		m.addcreate_time = &i
+	}
+}
+
+// AddedCreateTime returns the value that was added to the "create_time" field in this mutation.
+func (m *DirMutation) AddedCreateTime() (r int64, exists bool) {
+	v := m.addcreate_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
 // ResetCreateTime resets all changes to the "create_time" field.
 func (m *DirMutation) ResetCreateTime() {
 	m.create_time = nil
+	m.addcreate_time = nil
 }
 
 // SetModTime sets the "mod_time" field.
-func (m *DirMutation) SetModTime(t time.Time) {
-	m.mod_time = &t
+func (m *DirMutation) SetModTime(i int64) {
+	m.mod_time = &i
+	m.addmod_time = nil
 }
 
 // ModTime returns the value of the "mod_time" field in the mutation.
-func (m *DirMutation) ModTime() (r time.Time, exists bool) {
+func (m *DirMutation) ModTime() (r int64, exists bool) {
 	v := m.mod_time
 	if v == nil {
 		return
@@ -373,7 +396,7 @@ func (m *DirMutation) ModTime() (r time.Time, exists bool) {
 // OldModTime returns the old "mod_time" field's value of the Dir entity.
 // If the Dir object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *DirMutation) OldModTime(ctx context.Context) (v time.Time, err error) {
+func (m *DirMutation) OldModTime(ctx context.Context) (v int64, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldModTime is only allowed on UpdateOne operations")
 	}
@@ -387,9 +410,28 @@ func (m *DirMutation) OldModTime(ctx context.Context) (v time.Time, err error) {
 	return oldValue.ModTime, nil
 }
 
+// AddModTime adds i to the "mod_time" field.
+func (m *DirMutation) AddModTime(i int64) {
+	if m.addmod_time != nil {
+		*m.addmod_time += i
+	} else {
+		m.addmod_time = &i
+	}
+}
+
+// AddedModTime returns the value that was added to the "mod_time" field in this mutation.
+func (m *DirMutation) AddedModTime() (r int64, exists bool) {
+	v := m.addmod_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
 // ResetModTime resets all changes to the "mod_time" field.
 func (m *DirMutation) ResetModTime() {
 	m.mod_time = nil
+	m.addmod_time = nil
 }
 
 // Where appends a list predicates to the DirMutation builder.
@@ -524,14 +566,14 @@ func (m *DirMutation) SetField(name string, value ent.Value) error {
 		m.SetDeleted(v)
 		return nil
 	case dir.FieldCreateTime:
-		v, ok := value.(time.Time)
+		v, ok := value.(int64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreateTime(v)
 		return nil
 	case dir.FieldModTime:
-		v, ok := value.(time.Time)
+		v, ok := value.(int64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -548,6 +590,12 @@ func (m *DirMutation) AddedFields() []string {
 	if m.addlevel != nil {
 		fields = append(fields, dir.FieldLevel)
 	}
+	if m.addcreate_time != nil {
+		fields = append(fields, dir.FieldCreateTime)
+	}
+	if m.addmod_time != nil {
+		fields = append(fields, dir.FieldModTime)
+	}
 	return fields
 }
 
@@ -558,6 +606,10 @@ func (m *DirMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case dir.FieldLevel:
 		return m.AddedLevel()
+	case dir.FieldCreateTime:
+		return m.AddedCreateTime()
+	case dir.FieldModTime:
+		return m.AddedModTime()
 	}
 	return nil, false
 }
@@ -573,6 +625,20 @@ func (m *DirMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddLevel(v)
+		return nil
+	case dir.FieldCreateTime:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreateTime(v)
+		return nil
+	case dir.FieldModTime:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddModTime(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Dir numeric field %s", name)
@@ -674,24 +740,26 @@ func (m *DirMutation) ResetEdge(name string) error {
 // FileMutation represents an operation that mutates the File nodes in the graph.
 type FileMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	sync_id       *string
-	name          *string
-	parent_dir_id *string
-	level         *uint64
-	addlevel      *int64
-	hash          *string
-	size          *int64
-	addsize       *int64
-	deleted       *bool
-	create_time   *time.Time
-	mod_time      *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*File, error)
-	predicates    []predicate.File
+	op             Op
+	typ            string
+	id             *string
+	sync_id        *string
+	name           *string
+	parent_dir_id  *string
+	level          *uint64
+	addlevel       *int64
+	hash           *string
+	size           *int64
+	addsize        *int64
+	deleted        *bool
+	create_time    *int64
+	addcreate_time *int64
+	mod_time       *int64
+	addmod_time    *int64
+	clearedFields  map[string]struct{}
+	done           bool
+	oldValue       func(context.Context) (*File, error)
+	predicates     []predicate.File
 }
 
 var _ ent.Mutation = (*FileMutation)(nil)
@@ -1091,12 +1159,13 @@ func (m *FileMutation) ResetDeleted() {
 }
 
 // SetCreateTime sets the "create_time" field.
-func (m *FileMutation) SetCreateTime(t time.Time) {
-	m.create_time = &t
+func (m *FileMutation) SetCreateTime(i int64) {
+	m.create_time = &i
+	m.addcreate_time = nil
 }
 
 // CreateTime returns the value of the "create_time" field in the mutation.
-func (m *FileMutation) CreateTime() (r time.Time, exists bool) {
+func (m *FileMutation) CreateTime() (r int64, exists bool) {
 	v := m.create_time
 	if v == nil {
 		return
@@ -1107,7 +1176,7 @@ func (m *FileMutation) CreateTime() (r time.Time, exists bool) {
 // OldCreateTime returns the old "create_time" field's value of the File entity.
 // If the File object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FileMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
+func (m *FileMutation) OldCreateTime(ctx context.Context) (v int64, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreateTime is only allowed on UpdateOne operations")
 	}
@@ -1121,18 +1190,38 @@ func (m *FileMutation) OldCreateTime(ctx context.Context) (v time.Time, err erro
 	return oldValue.CreateTime, nil
 }
 
+// AddCreateTime adds i to the "create_time" field.
+func (m *FileMutation) AddCreateTime(i int64) {
+	if m.addcreate_time != nil {
+		*m.addcreate_time += i
+	} else {
+		m.addcreate_time = &i
+	}
+}
+
+// AddedCreateTime returns the value that was added to the "create_time" field in this mutation.
+func (m *FileMutation) AddedCreateTime() (r int64, exists bool) {
+	v := m.addcreate_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
 // ResetCreateTime resets all changes to the "create_time" field.
 func (m *FileMutation) ResetCreateTime() {
 	m.create_time = nil
+	m.addcreate_time = nil
 }
 
 // SetModTime sets the "mod_time" field.
-func (m *FileMutation) SetModTime(t time.Time) {
-	m.mod_time = &t
+func (m *FileMutation) SetModTime(i int64) {
+	m.mod_time = &i
+	m.addmod_time = nil
 }
 
 // ModTime returns the value of the "mod_time" field in the mutation.
-func (m *FileMutation) ModTime() (r time.Time, exists bool) {
+func (m *FileMutation) ModTime() (r int64, exists bool) {
 	v := m.mod_time
 	if v == nil {
 		return
@@ -1143,7 +1232,7 @@ func (m *FileMutation) ModTime() (r time.Time, exists bool) {
 // OldModTime returns the old "mod_time" field's value of the File entity.
 // If the File object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FileMutation) OldModTime(ctx context.Context) (v time.Time, err error) {
+func (m *FileMutation) OldModTime(ctx context.Context) (v int64, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldModTime is only allowed on UpdateOne operations")
 	}
@@ -1157,9 +1246,28 @@ func (m *FileMutation) OldModTime(ctx context.Context) (v time.Time, err error) 
 	return oldValue.ModTime, nil
 }
 
+// AddModTime adds i to the "mod_time" field.
+func (m *FileMutation) AddModTime(i int64) {
+	if m.addmod_time != nil {
+		*m.addmod_time += i
+	} else {
+		m.addmod_time = &i
+	}
+}
+
+// AddedModTime returns the value that was added to the "mod_time" field in this mutation.
+func (m *FileMutation) AddedModTime() (r int64, exists bool) {
+	v := m.addmod_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
 // ResetModTime resets all changes to the "mod_time" field.
 func (m *FileMutation) ResetModTime() {
 	m.mod_time = nil
+	m.addmod_time = nil
 }
 
 // Where appends a list predicates to the FileMutation builder.
@@ -1336,14 +1444,14 @@ func (m *FileMutation) SetField(name string, value ent.Value) error {
 		m.SetDeleted(v)
 		return nil
 	case file.FieldCreateTime:
-		v, ok := value.(time.Time)
+		v, ok := value.(int64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreateTime(v)
 		return nil
 	case file.FieldModTime:
-		v, ok := value.(time.Time)
+		v, ok := value.(int64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1363,6 +1471,12 @@ func (m *FileMutation) AddedFields() []string {
 	if m.addsize != nil {
 		fields = append(fields, file.FieldSize)
 	}
+	if m.addcreate_time != nil {
+		fields = append(fields, file.FieldCreateTime)
+	}
+	if m.addmod_time != nil {
+		fields = append(fields, file.FieldModTime)
+	}
 	return fields
 }
 
@@ -1375,6 +1489,10 @@ func (m *FileMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedLevel()
 	case file.FieldSize:
 		return m.AddedSize()
+	case file.FieldCreateTime:
+		return m.AddedCreateTime()
+	case file.FieldModTime:
+		return m.AddedModTime()
 	}
 	return nil, false
 }
@@ -1397,6 +1515,20 @@ func (m *FileMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddSize(v)
+		return nil
+	case file.FieldCreateTime:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreateTime(v)
+		return nil
+	case file.FieldModTime:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddModTime(v)
 		return nil
 	}
 	return fmt.Errorf("unknown File numeric field %s", name)
@@ -1507,19 +1639,20 @@ func (m *FileMutation) ResetEdge(name string) error {
 // SyncTaskMutation represents an operation that mutates the SyncTask nodes in the graph.
 type SyncTaskMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	user_id       *string
-	_type         *string
-	name          *string
-	root_dir      *string
-	deleted       *bool
-	create_time   *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*SyncTask, error)
-	predicates    []predicate.SyncTask
+	op             Op
+	typ            string
+	id             *string
+	user_id        *string
+	_type          *string
+	name           *string
+	root_dir       *string
+	deleted        *bool
+	create_time    *int64
+	addcreate_time *int64
+	clearedFields  map[string]struct{}
+	done           bool
+	oldValue       func(context.Context) (*SyncTask, error)
+	predicates     []predicate.SyncTask
 }
 
 var _ ent.Mutation = (*SyncTaskMutation)(nil)
@@ -1807,12 +1940,13 @@ func (m *SyncTaskMutation) ResetDeleted() {
 }
 
 // SetCreateTime sets the "create_time" field.
-func (m *SyncTaskMutation) SetCreateTime(t time.Time) {
-	m.create_time = &t
+func (m *SyncTaskMutation) SetCreateTime(i int64) {
+	m.create_time = &i
+	m.addcreate_time = nil
 }
 
 // CreateTime returns the value of the "create_time" field in the mutation.
-func (m *SyncTaskMutation) CreateTime() (r time.Time, exists bool) {
+func (m *SyncTaskMutation) CreateTime() (r int64, exists bool) {
 	v := m.create_time
 	if v == nil {
 		return
@@ -1823,7 +1957,7 @@ func (m *SyncTaskMutation) CreateTime() (r time.Time, exists bool) {
 // OldCreateTime returns the old "create_time" field's value of the SyncTask entity.
 // If the SyncTask object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SyncTaskMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
+func (m *SyncTaskMutation) OldCreateTime(ctx context.Context) (v int64, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreateTime is only allowed on UpdateOne operations")
 	}
@@ -1837,9 +1971,28 @@ func (m *SyncTaskMutation) OldCreateTime(ctx context.Context) (v time.Time, err 
 	return oldValue.CreateTime, nil
 }
 
+// AddCreateTime adds i to the "create_time" field.
+func (m *SyncTaskMutation) AddCreateTime(i int64) {
+	if m.addcreate_time != nil {
+		*m.addcreate_time += i
+	} else {
+		m.addcreate_time = &i
+	}
+}
+
+// AddedCreateTime returns the value that was added to the "create_time" field in this mutation.
+func (m *SyncTaskMutation) AddedCreateTime() (r int64, exists bool) {
+	v := m.addcreate_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
 // ResetCreateTime resets all changes to the "create_time" field.
 func (m *SyncTaskMutation) ResetCreateTime() {
 	m.create_time = nil
+	m.addcreate_time = nil
 }
 
 // Where appends a list predicates to the SyncTaskMutation builder.
@@ -1981,7 +2134,7 @@ func (m *SyncTaskMutation) SetField(name string, value ent.Value) error {
 		m.SetDeleted(v)
 		return nil
 	case synctask.FieldCreateTime:
-		v, ok := value.(time.Time)
+		v, ok := value.(int64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1994,13 +2147,21 @@ func (m *SyncTaskMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *SyncTaskMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addcreate_time != nil {
+		fields = append(fields, synctask.FieldCreateTime)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *SyncTaskMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case synctask.FieldCreateTime:
+		return m.AddedCreateTime()
+	}
 	return nil, false
 }
 
@@ -2009,6 +2170,13 @@ func (m *SyncTaskMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *SyncTaskMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case synctask.FieldCreateTime:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreateTime(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SyncTask numeric field %s", name)
 }

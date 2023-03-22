@@ -1,0 +1,2 @@
+Regexp  = ['123','2333',"(\\.(swp|swo)$)|(^\\.DS_Store$)|(~$)"]
+Filepath = ['aaaaa','jghd']

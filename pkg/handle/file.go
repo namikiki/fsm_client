@@ -33,7 +33,7 @@ func (h *Handle) FileWrite(file ent.File, parentPath, rootPath string) error {
 	fileIO.Close()
 	createFile.Close()
 
-	if err := os.Chtimes(filepath.Join(rootPath, parentPath, file.Name), file.ModTime, file.ModTime); err != nil {
+	if err := os.Chtimes(filepath.Join(rootPath, parentPath, file.Name), time.Unix(file.ModTime, 0), time.Unix(file.ModTime, 0)); err != nil {
 		return err
 	}
 
@@ -66,8 +66,8 @@ func (h *Handle) CloudFileCreate(fw fsn.FsEventWithID, stat os.FileInfo) error {
 		Name:       stat.Name(),
 		Level:      uint64(level),
 		Deleted:    false,
-		CreateTime: time.Now(),
-		ModTime:    stat.ModTime(),
+		CreateTime: time.Now().Unix(),
+		ModTime:    stat.ModTime().Unix(),
 	}
 
 	if file.ParentDirID = h.GetFileParentID(fw.AbsPath, stat.Name(), level); file.ParentDirID == "" {
@@ -109,14 +109,15 @@ func (h *Handle) CloudFileUpdate(fw fsn.FsEventWithID) error {
 		return err
 	}
 
-	h.DB.Where("sync_id = ? and level =? and name =?", fw.SyncID, level, stat.Name()).Find(&files)
-	if len(files) == 0 {
-		return h.CloudFileCreate(fw, stat)
-	}
+	time.Sleep(time.Millisecond * 500)
 
-	if len(files) == 1 {
+	h.DB.Where("sync_id = ? and level =? and name =?", fw.SyncID, level, stat.Name()).Find(&files)
+	switch len(files) {
+	case 0:
+		return h.CloudFileCreate(fw, stat)
+	case 1:
 		file = &files[0]
-	} else {
+	default:
 		if file, err = h.GetUFile(fw.AbsPath, split[level-1], fw.SyncID, level); err != nil {
 			return err
 		}
@@ -143,8 +144,8 @@ func (h *Handle) CloudDirCreate(fw fsn.FsEventWithID, stat os.FileInfo) error {
 		Dir:        fw.AbsPath + "/",
 		Level:      uint64(level),
 		Deleted:    false,
-		CreateTime: time.Now(),
-		ModTime:    stat.ModTime(),
+		CreateTime: time.Now().Unix(),
+		ModTime:    stat.ModTime().Unix(),
 	}
 
 	if err := h.HttpClient.DirCreate(&dir); err != nil {
@@ -207,18 +208,13 @@ func (h *Handle) GetDeleteID(fw fsn.FsEventWithID) (*ent.Dir, *ent.File) {
 	return nil, nil
 }
 
-func (h *Handle) awd(stat os.FileInfo, event fsn.FsEventWithID, a *[3]string, file *ent.File, dir *ent.Dir) error {
+func (h *Handle) GetRenameData(stat os.FileInfo, event fsn.FsEventWithID, a *[3]string) (file *ent.Dir, dir *ent.File) {
 
 	if stat == nil {
 		log.Println("该名之前的路径", event.Path())
-		if dir, file = h.GetDeleteID(event); file == nil && dir == nil {
-			log.Println(event.Path(), "no found")
-			return errors.New("aaa")
-		}
-
 		log.Println("等到改名之前的的夫路径", filepath.Dir(event.Path()))
 		a[0] = filepath.Dir(event.Path())
-		return nil
+		return h.GetDeleteID(event)
 	}
 
 	log.Println("该名之后的路径", event.Path())
@@ -230,7 +226,7 @@ func (h *Handle) awd(stat os.FileInfo, event fsn.FsEventWithID, a *[3]string, fi
 		a[2] = filepath.Base(event.Path())
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (h *Handle) Rename(eventChan chan fsn.FsEventWithID) {
@@ -239,142 +235,57 @@ func (h *Handle) Rename(eventChan chan fsn.FsEventWithID) {
 	var dir *ent.Dir
 
 	for {
+
 		event := <-eventChan
+		time.Sleep(time.Millisecond * 500)
 		stat, _ := os.Stat(event.Path())
-		if err := h.awd(stat, event, &a, file, dir); err != nil {
-			continue
+		d, f := h.GetRenameData(stat, event, &a)
+
+		if d != nil || f != nil {
+			file = f
+			dir = d
 		}
+
 		log.Println("第一次检测")
 
 		timer := time.NewTimer(time.Second * 2)
 		select {
 		case event2 := <-eventChan:
-			if err := h.awd(stat, event2, &a, file, dir); err != nil {
-				continue
+			info, _ := os.Stat(event2.Path())
+			dd, ff := h.GetRenameData(info, event2, &a)
+
+			if dd != nil || ff != nil {
+				file = ff
+				dir = dd
 			}
+
 			log.Println("第二次检测")
 		case <-timer.C:
 			continue
 		}
 
-		log.Println(a[0])
-		log.Println(a[1])
-		log.Println(a[2])
-
-		if dir != nil || file != nil {
-			log.Println("dir or file is ok")
-		}
+		//log.Println(a[0])
+		//log.Println(a[1])
+		//log.Println(a[2])
+		//log.Println(file)
+		//log.Println(dir)
 
 		if a[0] == a[1] {
 			if file != nil {
 				file.Name = a[2]
 				h.HttpClient.FileRename(*file)
-			} else {
+				h.DB.Save(file)
+			}
+			if dir != nil {
 				dir.Dir = a[2]
 				h.HttpClient.DirRename(*dir)
+				h.DB.Save(dir)
 			}
 		}
-		file, dir = nil, nil
 
+		file, dir = nil, nil
 	}
 }
-
-//func (h *Handle) Rename(eventChan chan fsn.FsEventWithID) {
-//
-//	var f [2]*ent.File
-//	//var changeFile string
-//	var d [2]*ent.Dir
-//	//var changeDir string
-//
-//	for  {
-//		event := <-eventChan
-//		stat, _ := os.Stat(event.Path())
-//
-//		if stat == nil {
-//
-//			dir, file := h.GetDeleteID(event)
-//			if dir != nil {
-//				d[0] = dir
-//			} else if file != nil {
-//				f[0] = file
-//			} else {
-//				log.Println("重命名未找到")
-//			}
-//
-//			continue
-//		}
-//
-//		if stat.IsDir() {
-//			changeDir = event.Path()
-//		}
-//		changeFile = event.Path()
-//
-//		select {
-//		event:
-//
-
-//	var f *ent.File
-//	var changeFile string
-//	var d *ent.Dir
-//	var changeDir string
-//
-//	for {
-//		event := <-eventChan
-//		stat, _ := os.Stat(event.Path())
-//
-//		if stat == nil {
-//
-//			dir, file := h.GetDeleteID(event)
-//			if dir != nil {
-//				d = dir
-//			} else if file != nil {
-//				f = file
-//			} else {
-//				log.Println("重命名未找到")
-//			}
-//
-//			continue
-//		}
-//
-//		if stat.IsDir() {
-//			changeDir = event.Path()
-//		}
-//		changeFile = event.Path()
-//
-//		if f != nil && changeFile != "" {
-//			filepath.Dir()
-//
-//			continue
-//		}
-//
-//		if d != nil && changeDir != "" {
-//
-//			continue
-//		}
-//
-//		if stat.IsDir() {
-//			if d[0] != nil {
-//				d[0].Dir = event.AbsPath + "/"
-//				err := h.HttpClient.DirRename(*d[0])
-//				if err != nil {
-//					log.Println(err)
-//				}
-//			}
-//			d[0], d[1] = nil, nil
-//			continue
-//		}
-//
-//		if f[0] != nil {
-//			f[0].Name = stat.Name()
-//			err := h.HttpClient.FileRename(*f[0])
-//			if err != nil {
-//				log.Println(err)
-//			}
-//		}
-//		f[0], f[1] = nil, nil
-//
-//	}
-//}
 
 func (h *Handle) PressLocalChange(eventChan chan fsn.FsEventWithID, errChan chan error) {
 	for {

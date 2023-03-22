@@ -18,7 +18,7 @@ func NewUser() ent.User {
 	}
 }
 
-func NewAccount() types.UserLoginReq {
+func NewLogin() types.UserLoginReq {
 	return types.UserLoginReq{
 		Email:    "1231231231@gmail.com",
 		PassWord: "1231der232342423",

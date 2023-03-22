@@ -10,22 +10,44 @@ import (
 	"fsm_client/pkg/ignore"
 )
 
-func (h *Handle) DirCreate(dir ent.Dir, rootPath string) {
+func (h *Handle) DirChange(action string, dir ent.Dir, rootPath string) {
+
 	ignore.Lock.Store(strings.TrimSuffix(filepath.Join(rootPath, dir.Dir), PathSeparator), 1)
 
-	os.MkdirAll(filepath.Join(rootPath, dir.Dir), os.ModePerm)
-	h.DB.Create(&dir)
+	switch action {
+	case "create":
 
-	time.Sleep(time.Millisecond * 500)
-	ignore.Lock.Delete(strings.TrimSuffix(rootPath+dir.Dir, PathSeparator))
-}
+		if err := os.MkdirAll(filepath.Join(rootPath, dir.Dir), os.ModePerm); err != nil {
+			return
+		}
+		h.DB.Create(&dir)
 
-func (h *Handle) DirDelete(dir ent.Dir, rootPath string) {
-	ignore.Lock.Store(strings.TrimSuffix(filepath.Join(rootPath, dir.Dir), PathSeparator), 1)
+	case "delete":
 
-	os.RemoveAll(filepath.Join(rootPath, dir.Dir))
-	h.DB.Delete(&dir)
+		if err := os.RemoveAll(filepath.Join(rootPath, dir.Dir)); err != nil {
+			return
+		}
+		h.DB.Delete(&dir)
 
-	time.Sleep(time.Millisecond * 500)
-	ignore.Lock.Delete(strings.TrimSuffix(rootPath+dir.Dir, PathSeparator))
+	case "rename":
+
+		var d ent.Dir
+		h.DB.Where("sync_id =? and id =? and level = ?", dir.SyncID, dir.ID, dir.Level).Find(&d)
+		ignore.Lock.Store(strings.TrimSuffix(filepath.Join(rootPath, d.Dir), PathSeparator), 1)
+
+		if err := os.Rename(filepath.Join(rootPath, d.Dir),
+			filepath.Join(rootPath, dir.Dir)); err != nil {
+			return
+		}
+		h.DB.Save(&dir)
+
+		time.Sleep(time.Millisecond * 500)
+		ignore.Lock.Delete(strings.TrimSuffix(filepath.Join(rootPath, d.Dir), PathSeparator))
+		ignore.Lock.Delete(strings.TrimSuffix(rootPath+dir.Dir, PathSeparator))
+	}
+
+	if action != "rename" {
+		time.Sleep(time.Millisecond * 500)
+		ignore.Lock.Delete(strings.TrimSuffix(rootPath+dir.Dir, PathSeparator))
+	}
 }

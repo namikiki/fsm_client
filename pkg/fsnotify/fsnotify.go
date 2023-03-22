@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"fsm_client/pkg/ent"
 	"fsm_client/pkg/ignore"
@@ -89,6 +90,8 @@ func (wm *WatchManger) add(w *Watcher) {
 
 	log.Printf("ID %s 路径 %s 开始监控", w.SyncID, w.Path)
 	rootPathLen := len(w.Path)
+	var p string
+	t := time.Now()
 
 	if w.Ignore {
 		for {
@@ -103,6 +106,12 @@ func (wm *WatchManger) add(w *Watcher) {
 
 			path := event.Path()[rootPathLen:]
 			log.Println(event.Event(), event.Path())
+
+			if p == event.Path() && time.Now().Unix()-t.Unix() < 2 {
+				continue
+			}
+			p = event.Path()
+			t = time.Now()
 
 			if event.Event() == notify.Rename {
 				wm.RenameChannel <- FsEventWithID{event, w.SyncID, path}
@@ -124,6 +133,12 @@ func (wm *WatchManger) add(w *Watcher) {
 
 		path := event.Path()[rootPathLen:]
 		log.Println(event.Event(), event.Path())
+
+		if p == event.Path() && t.Unix()-time.Now().Unix() < 2 {
+			continue
+		}
+		p = event.Path()
+		t = time.Now()
 
 		if event.Event() == notify.Rename {
 			wm.RenameChannel <- FsEventWithID{event, w.SyncID, path}

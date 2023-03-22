@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"fsm_client/pkg/ent/synctask"
 	"strings"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
@@ -27,7 +26,7 @@ type SyncTask struct {
 	// Deleted holds the value of the "deleted" field.
 	Deleted bool `json:"deleted,omitempty"`
 	// CreateTime holds the value of the "create_time" field.
-	CreateTime time.Time `json:"create_time,omitempty"`
+	CreateTime int64 `json:"create_time,omitempty"`
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -37,10 +36,10 @@ func (*SyncTask) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case synctask.FieldDeleted:
 			values[i] = new(sql.NullBool)
+		case synctask.FieldCreateTime:
+			values[i] = new(sql.NullInt64)
 		case synctask.FieldID, synctask.FieldUserID, synctask.FieldType, synctask.FieldName, synctask.FieldRootDir:
 			values[i] = new(sql.NullString)
-		case synctask.FieldCreateTime:
-			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type SyncTask", columns[i])
 		}
@@ -93,10 +92,10 @@ func (st *SyncTask) assignValues(columns []string, values []any) error {
 				st.Deleted = value.Bool
 			}
 		case synctask.FieldCreateTime:
-			if value, ok := values[i].(*sql.NullTime); !ok {
+			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field create_time", values[i])
 			} else if value.Valid {
-				st.CreateTime = value.Time
+				st.CreateTime = value.Int64
 			}
 		}
 	}
@@ -142,7 +141,7 @@ func (st *SyncTask) String() string {
 	builder.WriteString(fmt.Sprintf("%v", st.Deleted))
 	builder.WriteString(", ")
 	builder.WriteString("create_time=")
-	builder.WriteString(st.CreateTime.Format(time.ANSIC))
+	builder.WriteString(fmt.Sprintf("%v", st.CreateTime))
 	builder.WriteByte(')')
 	return builder.String()
 }

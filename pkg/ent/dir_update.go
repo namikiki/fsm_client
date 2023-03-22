@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"fsm_client/pkg/ent/dir"
 	"fsm_client/pkg/ent/predicate"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -60,14 +59,28 @@ func (du *DirUpdate) SetDeleted(b bool) *DirUpdate {
 }
 
 // SetCreateTime sets the "create_time" field.
-func (du *DirUpdate) SetCreateTime(t time.Time) *DirUpdate {
-	du.mutation.SetCreateTime(t)
+func (du *DirUpdate) SetCreateTime(i int64) *DirUpdate {
+	du.mutation.ResetCreateTime()
+	du.mutation.SetCreateTime(i)
+	return du
+}
+
+// AddCreateTime adds i to the "create_time" field.
+func (du *DirUpdate) AddCreateTime(i int64) *DirUpdate {
+	du.mutation.AddCreateTime(i)
 	return du
 }
 
 // SetModTime sets the "mod_time" field.
-func (du *DirUpdate) SetModTime(t time.Time) *DirUpdate {
-	du.mutation.SetModTime(t)
+func (du *DirUpdate) SetModTime(i int64) *DirUpdate {
+	du.mutation.ResetModTime()
+	du.mutation.SetModTime(i)
+	return du
+}
+
+// AddModTime adds i to the "mod_time" field.
+func (du *DirUpdate) AddModTime(i int64) *DirUpdate {
+	du.mutation.AddModTime(i)
 	return du
 }
 
@@ -128,10 +141,16 @@ func (du *DirUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.SetField(dir.FieldDeleted, field.TypeBool, value)
 	}
 	if value, ok := du.mutation.CreateTime(); ok {
-		_spec.SetField(dir.FieldCreateTime, field.TypeTime, value)
+		_spec.SetField(dir.FieldCreateTime, field.TypeInt64, value)
+	}
+	if value, ok := du.mutation.AddedCreateTime(); ok {
+		_spec.AddField(dir.FieldCreateTime, field.TypeInt64, value)
 	}
 	if value, ok := du.mutation.ModTime(); ok {
-		_spec.SetField(dir.FieldModTime, field.TypeTime, value)
+		_spec.SetField(dir.FieldModTime, field.TypeInt64, value)
+	}
+	if value, ok := du.mutation.AddedModTime(); ok {
+		_spec.AddField(dir.FieldModTime, field.TypeInt64, value)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, du.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -185,14 +204,28 @@ func (duo *DirUpdateOne) SetDeleted(b bool) *DirUpdateOne {
 }
 
 // SetCreateTime sets the "create_time" field.
-func (duo *DirUpdateOne) SetCreateTime(t time.Time) *DirUpdateOne {
-	duo.mutation.SetCreateTime(t)
+func (duo *DirUpdateOne) SetCreateTime(i int64) *DirUpdateOne {
+	duo.mutation.ResetCreateTime()
+	duo.mutation.SetCreateTime(i)
+	return duo
+}
+
+// AddCreateTime adds i to the "create_time" field.
+func (duo *DirUpdateOne) AddCreateTime(i int64) *DirUpdateOne {
+	duo.mutation.AddCreateTime(i)
 	return duo
 }
 
 // SetModTime sets the "mod_time" field.
-func (duo *DirUpdateOne) SetModTime(t time.Time) *DirUpdateOne {
-	duo.mutation.SetModTime(t)
+func (duo *DirUpdateOne) SetModTime(i int64) *DirUpdateOne {
+	duo.mutation.ResetModTime()
+	duo.mutation.SetModTime(i)
+	return duo
+}
+
+// AddModTime adds i to the "mod_time" field.
+func (duo *DirUpdateOne) AddModTime(i int64) *DirUpdateOne {
+	duo.mutation.AddModTime(i)
 	return duo
 }
 
@@ -283,10 +316,16 @@ func (duo *DirUpdateOne) sqlSave(ctx context.Context) (_node *Dir, err error) {
 		_spec.SetField(dir.FieldDeleted, field.TypeBool, value)
 	}
 	if value, ok := duo.mutation.CreateTime(); ok {
-		_spec.SetField(dir.FieldCreateTime, field.TypeTime, value)
+		_spec.SetField(dir.FieldCreateTime, field.TypeInt64, value)
+	}
+	if value, ok := duo.mutation.AddedCreateTime(); ok {
+		_spec.AddField(dir.FieldCreateTime, field.TypeInt64, value)
 	}
 	if value, ok := duo.mutation.ModTime(); ok {
-		_spec.SetField(dir.FieldModTime, field.TypeTime, value)
+		_spec.SetField(dir.FieldModTime, field.TypeInt64, value)
+	}
+	if value, ok := duo.mutation.AddedModTime(); ok {
+		_spec.AddField(dir.FieldModTime, field.TypeInt64, value)
 	}
 	_node = &Dir{config: duo.config}
 	_spec.Assign = _node.assignValues

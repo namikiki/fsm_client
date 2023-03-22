@@ -21,6 +21,6 @@ func (SyncTask) Fields() []ent.Field {
 		field.String("root_dir"),
 
 		field.Bool("deleted"),
-		field.Time("create_time"),
+		field.Int64("create_time"),
 	}
 }

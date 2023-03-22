@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"fsm_client/pkg/ent/file"
 	"strings"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
@@ -31,9 +30,9 @@ type File struct {
 	// Deleted holds the value of the "deleted" field.
 	Deleted bool `json:"deleted,omitempty"`
 	// CreateTime holds the value of the "create_time" field.
-	CreateTime time.Time `json:"create_time,omitempty"`
+	CreateTime int64 `json:"create_time,omitempty"`
 	// ModTime holds the value of the "mod_time" field.
-	ModTime time.Time `json:"mod_time,omitempty"`
+	ModTime int64 `json:"mod_time,omitempty"`
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -43,12 +42,10 @@ func (*File) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case file.FieldDeleted:
 			values[i] = new(sql.NullBool)
-		case file.FieldLevel, file.FieldSize:
+		case file.FieldLevel, file.FieldSize, file.FieldCreateTime, file.FieldModTime:
 			values[i] = new(sql.NullInt64)
 		case file.FieldID, file.FieldSyncID, file.FieldName, file.FieldParentDirID, file.FieldHash:
 			values[i] = new(sql.NullString)
-		case file.FieldCreateTime, file.FieldModTime:
-			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type File", columns[i])
 		}
@@ -113,16 +110,16 @@ func (f *File) assignValues(columns []string, values []any) error {
 				f.Deleted = value.Bool
 			}
 		case file.FieldCreateTime:
-			if value, ok := values[i].(*sql.NullTime); !ok {
+			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field create_time", values[i])
 			} else if value.Valid {
-				f.CreateTime = value.Time
+				f.CreateTime = value.Int64
 			}
 		case file.FieldModTime:
-			if value, ok := values[i].(*sql.NullTime); !ok {
+			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field mod_time", values[i])
 			} else if value.Valid {
-				f.ModTime = value.Time
+				f.ModTime = value.Int64
 			}
 		}
 	}
@@ -174,10 +171,10 @@ func (f *File) String() string {
 	builder.WriteString(fmt.Sprintf("%v", f.Deleted))
 	builder.WriteString(", ")
 	builder.WriteString("create_time=")
-	builder.WriteString(f.CreateTime.Format(time.ANSIC))
+	builder.WriteString(fmt.Sprintf("%v", f.CreateTime))
 	builder.WriteString(", ")
 	builder.WriteString("mod_time=")
-	builder.WriteString(f.ModTime.Format(time.ANSIC))
+	builder.WriteString(fmt.Sprintf("%v", f.ModTime))
 	builder.WriteByte(')')
 	return builder.String()
 }

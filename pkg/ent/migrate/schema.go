@@ -15,8 +15,8 @@ var (
 		{Name: "dir", Type: field.TypeString},
 		{Name: "level", Type: field.TypeUint64},
 		{Name: "deleted", Type: field.TypeBool},
-		{Name: "create_time", Type: field.TypeTime},
-		{Name: "mod_time", Type: field.TypeTime},
+		{Name: "create_time", Type: field.TypeInt64},
+		{Name: "mod_time", Type: field.TypeInt64},
 	}
 	// DirsTable holds the schema information for the "dirs" table.
 	DirsTable = &schema.Table{
@@ -34,8 +34,8 @@ var (
 		{Name: "hash", Type: field.TypeString},
 		{Name: "size", Type: field.TypeInt64},
 		{Name: "deleted", Type: field.TypeBool},
-		{Name: "create_time", Type: field.TypeTime},
-		{Name: "mod_time", Type: field.TypeTime},
+		{Name: "create_time", Type: field.TypeInt64},
+		{Name: "mod_time", Type: field.TypeInt64},
 	}
 	// FilesTable holds the schema information for the "files" table.
 	FilesTable = &schema.Table{
@@ -51,7 +51,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "root_dir", Type: field.TypeString},
 		{Name: "deleted", Type: field.TypeBool},
-		{Name: "create_time", Type: field.TypeTime},
+		{Name: "create_time", Type: field.TypeInt64},
 	}
 	// SyncTasksTable holds the schema information for the "sync_tasks" table.
 	SyncTasksTable = &schema.Table{

@@ -4,7 +4,6 @@ package file
 
 import (
 	"fsm_client/pkg/ent/predicate"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
@@ -90,12 +89,12 @@ func Deleted(v bool) predicate.File {
 }
 
 // CreateTime applies equality check predicate on the "create_time" field. It's identical to CreateTimeEQ.
-func CreateTime(v time.Time) predicate.File {
+func CreateTime(v int64) predicate.File {
 	return predicate.File(sql.FieldEQ(FieldCreateTime, v))
 }
 
 // ModTime applies equality check predicate on the "mod_time" field. It's identical to ModTimeEQ.
-func ModTime(v time.Time) predicate.File {
+func ModTime(v int64) predicate.File {
 	return predicate.File(sql.FieldEQ(FieldModTime, v))
 }
 
@@ -450,82 +449,82 @@ func DeletedNEQ(v bool) predicate.File {
 }
 
 // CreateTimeEQ applies the EQ predicate on the "create_time" field.
-func CreateTimeEQ(v time.Time) predicate.File {
+func CreateTimeEQ(v int64) predicate.File {
 	return predicate.File(sql.FieldEQ(FieldCreateTime, v))
 }
 
 // CreateTimeNEQ applies the NEQ predicate on the "create_time" field.
-func CreateTimeNEQ(v time.Time) predicate.File {
+func CreateTimeNEQ(v int64) predicate.File {
 	return predicate.File(sql.FieldNEQ(FieldCreateTime, v))
 }
 
 // CreateTimeIn applies the In predicate on the "create_time" field.
-func CreateTimeIn(vs ...time.Time) predicate.File {
+func CreateTimeIn(vs ...int64) predicate.File {
 	return predicate.File(sql.FieldIn(FieldCreateTime, vs...))
 }
 
 // CreateTimeNotIn applies the NotIn predicate on the "create_time" field.
-func CreateTimeNotIn(vs ...time.Time) predicate.File {
+func CreateTimeNotIn(vs ...int64) predicate.File {
 	return predicate.File(sql.FieldNotIn(FieldCreateTime, vs...))
 }
 
 // CreateTimeGT applies the GT predicate on the "create_time" field.
-func CreateTimeGT(v time.Time) predicate.File {
+func CreateTimeGT(v int64) predicate.File {
 	return predicate.File(sql.FieldGT(FieldCreateTime, v))
 }
 
 // CreateTimeGTE applies the GTE predicate on the "create_time" field.
-func CreateTimeGTE(v time.Time) predicate.File {
+func CreateTimeGTE(v int64) predicate.File {
 	return predicate.File(sql.FieldGTE(FieldCreateTime, v))
 }
 
 // CreateTimeLT applies the LT predicate on the "create_time" field.
-func CreateTimeLT(v time.Time) predicate.File {
+func CreateTimeLT(v int64) predicate.File {
 	return predicate.File(sql.FieldLT(FieldCreateTime, v))
 }
 
 // CreateTimeLTE applies the LTE predicate on the "create_time" field.
-func CreateTimeLTE(v time.Time) predicate.File {
+func CreateTimeLTE(v int64) predicate.File {
 	return predicate.File(sql.FieldLTE(FieldCreateTime, v))
 }
 
 // ModTimeEQ applies the EQ predicate on the "mod_time" field.
-func ModTimeEQ(v time.Time) predicate.File {
+func ModTimeEQ(v int64) predicate.File {
 	return predicate.File(sql.FieldEQ(FieldModTime, v))
 }
 
 // ModTimeNEQ applies the NEQ predicate on the "mod_time" field.
-func ModTimeNEQ(v time.Time) predicate.File {
+func ModTimeNEQ(v int64) predicate.File {
 	return predicate.File(sql.FieldNEQ(FieldModTime, v))
 }
 
 // ModTimeIn applies the In predicate on the "mod_time" field.
-func ModTimeIn(vs ...time.Time) predicate.File {
+func ModTimeIn(vs ...int64) predicate.File {
 	return predicate.File(sql.FieldIn(FieldModTime, vs...))
 }
 
 // ModTimeNotIn applies the NotIn predicate on the "mod_time" field.
-func ModTimeNotIn(vs ...time.Time) predicate.File {
+func ModTimeNotIn(vs ...int64) predicate.File {
 	return predicate.File(sql.FieldNotIn(FieldModTime, vs...))
 }
 
 // ModTimeGT applies the GT predicate on the "mod_time" field.
-func ModTimeGT(v time.Time) predicate.File {
+func ModTimeGT(v int64) predicate.File {
 	return predicate.File(sql.FieldGT(FieldModTime, v))
 }
 
 // ModTimeGTE applies the GTE predicate on the "mod_time" field.
-func ModTimeGTE(v time.Time) predicate.File {
+func ModTimeGTE(v int64) predicate.File {
 	return predicate.File(sql.FieldGTE(FieldModTime, v))
 }
 
 // ModTimeLT applies the LT predicate on the "mod_time" field.
-func ModTimeLT(v time.Time) predicate.File {
+func ModTimeLT(v int64) predicate.File {
 	return predicate.File(sql.FieldLT(FieldModTime, v))
 }
 
 // ModTimeLTE applies the LTE predicate on the "mod_time" field.
-func ModTimeLTE(v time.Time) predicate.File {
+func ModTimeLTE(v int64) predicate.File {
 	return predicate.File(sql.FieldLTE(FieldModTime, v))
 }
 

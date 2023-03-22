@@ -18,7 +18,7 @@ func Init() *Client {
 		log.Println(err)
 	}
 
-	account := mock.NewAccount()
+	account := mock.NewLogin()
 	if err := client.Login(account); err != nil {
 		log.Println(err)
 	}

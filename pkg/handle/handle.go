@@ -44,8 +44,8 @@ func (h *Handle) ScannerPathToUpload(rooPath, syncID string) error {
 				Dir:        path + "/", // todo Split
 				Level:      uint64(len(strings.Split(path, "/"))),
 				Deleted:    false,
-				CreateTime: time.Now(),
-				ModTime:    time.Now(),
+				CreateTime: time.Now().Unix(),
+				ModTime:    time.Now().Unix(),
 			}
 			if err := h.HttpClient.DirCreate(&dir); err != nil {
 				return err
@@ -68,8 +68,8 @@ func (h *Handle) ScannerPathToUpload(rooPath, syncID string) error {
 			Level:       uint64(level),
 			Size:        info.Size(),
 			Deleted:     false,
-			CreateTime:  time.Now(),
-			ModTime:     info.ModTime(),
+			CreateTime:  time.Now().Unix(),
+			ModTime:     info.ModTime().Unix(),
 		}
 
 		fileIO, err := os.Open(rawPath)
@@ -122,7 +122,7 @@ func (h *Handle) GetSyncTaskToDownload(syncID, path string) error {
 			}
 			fileIO.Close()
 
-			os.Chtimes(path+dir.Dir+files[i].Name, files[i].ModTime, files[i].ModTime)
+			os.Chtimes(path+dir.Dir+files[i].Name, time.Unix(files[i].ModTime, 0), time.Unix(files[i].ModTime, 0))
 
 			time.Sleep(time.Millisecond * 500)
 			ignore.Lock.Delete(path + dir.Dir + files[i].Name)
