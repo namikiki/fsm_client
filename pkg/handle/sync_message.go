@@ -14,6 +14,7 @@ func (h *Handle) FileChange(action string, file ent.File, parentPath, rootPath s
 	if h.Ignore.Match(file.Name) {
 		return
 	}
+
 	log.Println(file.Name, action)
 	ignore.Lock.Store(rootPath+parentPath+file.Name, 1)
 
