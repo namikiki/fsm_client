@@ -65,6 +65,11 @@ func WriteConfigToFile() error {
 		return err
 	}
 
+	if err := os.MkdirAll(filepath.Join(dir, Application), os.ModePerm); err != nil {
+		log.Fatal(err)
+		return err
+	}
+
 	file, err := os.OpenFile(filepath.Join(dir, Application, "config"), os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
@@ -90,16 +95,18 @@ func GetPlatformType() string {
 }
 
 func NewIgnoreConfig() (*types.Ignore, error) {
-	//dir, err := os.UserConfigDir()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//ignorePath := filepath.Join(dir, Application, "ignore")
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return nil, err
+	}
 
-	ignorePath := "ignore.toml"
+	ignorePath := filepath.Join(dir, Application, "ignore.toml")
+	//todo 生成ignore 配置文件
+
+	//ignorePath := "ignore.toml"
 
 	var ignore types.Ignore
-	_, err := toml.DecodeFile(ignorePath, &ignore)
+	_, err = toml.DecodeFile(ignorePath, &ignore)
 
 	log.Println("ignore :", ignore)
 

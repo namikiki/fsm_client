@@ -16,17 +16,21 @@ type SyncTask struct {
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// UserID holds the value of the "user_id" field.
-	UserID string `json:"user_id,omitempty" db:"sync_id" `
+	UserID string `json:"user_id,omitempty"`
 	// Type holds the value of the "type" field.
 	Type string `json:"type,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// RootDir holds the value of the "root_dir" field.
 	RootDir string `json:"root_dir,omitempty"`
+	// Ignore holds the value of the "ignore" field.
+	Ignore bool `json:"ignore,omitempty"`
 	// Deleted holds the value of the "deleted" field.
 	Deleted bool `json:"deleted,omitempty"`
+	// Status holds the value of the "status" field.
+	Status string `json:"status,omitempty"`
 	// CreateTime holds the value of the "create_time" field.
-	CreateTime int64 `json:"create_time,omitempty" db:"create_time" `
+	CreateTime int64 `json:"create_time,omitempty"`
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -34,11 +38,11 @@ func (*SyncTask) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case synctask.FieldDeleted:
+		case synctask.FieldIgnore, synctask.FieldDeleted:
 			values[i] = new(sql.NullBool)
 		case synctask.FieldCreateTime:
 			values[i] = new(sql.NullInt64)
-		case synctask.FieldID, synctask.FieldUserID, synctask.FieldType, synctask.FieldName, synctask.FieldRootDir:
+		case synctask.FieldID, synctask.FieldUserID, synctask.FieldType, synctask.FieldName, synctask.FieldRootDir, synctask.FieldStatus:
 			values[i] = new(sql.NullString)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type SyncTask", columns[i])
@@ -85,11 +89,23 @@ func (st *SyncTask) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				st.RootDir = value.String
 			}
+		case synctask.FieldIgnore:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field ignore", values[i])
+			} else if value.Valid {
+				st.Ignore = value.Bool
+			}
 		case synctask.FieldDeleted:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted", values[i])
 			} else if value.Valid {
 				st.Deleted = value.Bool
+			}
+		case synctask.FieldStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field status", values[i])
+			} else if value.Valid {
+				st.Status = value.String
 			}
 		case synctask.FieldCreateTime:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -137,8 +153,14 @@ func (st *SyncTask) String() string {
 	builder.WriteString("root_dir=")
 	builder.WriteString(st.RootDir)
 	builder.WriteString(", ")
+	builder.WriteString("ignore=")
+	builder.WriteString(fmt.Sprintf("%v", st.Ignore))
+	builder.WriteString(", ")
 	builder.WriteString("deleted=")
 	builder.WriteString(fmt.Sprintf("%v", st.Deleted))
+	builder.WriteString(", ")
+	builder.WriteString("status=")
+	builder.WriteString(st.Status)
 	builder.WriteString(", ")
 	builder.WriteString("create_time=")
 	builder.WriteString(fmt.Sprintf("%v", st.CreateTime))

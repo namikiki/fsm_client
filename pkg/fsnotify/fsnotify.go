@@ -262,8 +262,8 @@ func (wm *WatchManger) add(w *Watcher) {
 //}
 
 func (wm *WatchManger) remove(syncID string) {
-	delete(wm.Watchers, syncID)
 	notify.Stop(wm.Watchers[syncID].Chan)
+	delete(wm.Watchers, syncID)
 	//if err := ; err != nil {
 	//	wm.ErrBuffChannel <- err
 	//}

@@ -50,7 +50,9 @@ var (
 		{Name: "type", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "root_dir", Type: field.TypeString},
+		{Name: "ignore", Type: field.TypeBool},
 		{Name: "deleted", Type: field.TypeBool},
+		{Name: "status", Type: field.TypeString},
 		{Name: "create_time", Type: field.TypeInt64},
 	}
 	// SyncTasksTable holds the schema information for the "sync_tasks" table.

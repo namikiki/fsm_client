@@ -34,7 +34,7 @@ func (mrt MyRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 type Client struct {
 	Conf         *types.Config
 	HttpClient   *http.Client
-	DL           map[string]struct{}
+	Ch           chan int
 	BaseUrl      string // base URL
 	WebsocketUrl string // ws URL
 	UserID       string
@@ -44,10 +44,11 @@ type Client struct {
 
 func NewClient(conf *types.Config) *Client { // todo
 	log.Println("clientID = ", conf.Device.ClientID)
+	ch := make(chan int)
 
 	return &Client{
 		HttpClient:   nil,
-		DL:           map[string]struct{}{},
+		Ch:           ch,
 		BaseUrl:      conf.Server.BaseUrl,
 		WebsocketUrl: conf.Server.WebSocketUrl,
 		Conf:         conf,

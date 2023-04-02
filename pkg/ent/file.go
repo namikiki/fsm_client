@@ -16,11 +16,11 @@ type File struct {
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// SyncID holds the value of the "sync_id" field.
-	SyncID string `json:"sync_id,omitempty" db:"sync_id" `
+	SyncID string `json:"sync_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// ParentDirID holds the value of the "parent_dir_id" field.
-	ParentDirID string `json:"parent_dir_id,omitempty" db:"parent_dir_id" `
+	ParentDirID string `json:"parent_dir_id,omitempty"`
 	// Level holds the value of the "level" field.
 	Level uint64 `json:"level,omitempty"`
 	// Hash holds the value of the "hash" field.
@@ -30,9 +30,9 @@ type File struct {
 	// Deleted holds the value of the "deleted" field.
 	Deleted bool `json:"deleted,omitempty"`
 	// CreateTime holds the value of the "create_time" field.
-	CreateTime int64 `json:"create_time,omitempty" db:"create_time" `
+	CreateTime int64 `json:"create_time,omitempty"`
 	// ModTime holds the value of the "mod_time" field.
-	ModTime int64 `json:"mod_time,omitempty" db:"mod_time" `
+	ModTime int64 `json:"mod_time,omitempty"`
 }
 
 // scanValues returns the types for scanning values from sql.Rows.

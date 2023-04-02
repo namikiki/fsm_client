@@ -28,7 +28,6 @@ type Syncer struct {
 }
 
 func NewSyncer(client *httpclient.Client, db *gorm.DB, handle *handle.Handle, watchManger *fsn.WatchManger) *Syncer {
-	// todo  init SyncTask
 	synctask := make(map[string]string)
 
 	return &Syncer{
@@ -41,15 +40,19 @@ func NewSyncer(client *httpclient.Client, db *gorm.DB, handle *handle.Handle, wa
 }
 
 func (s *Syncer) ListenLocalChanges() error {
+	<-s.httpClient.Ch
+
 	var st []ent.SyncTask
-	s.DB.Find(&st)
+	s.DB.Where("status = ?", "sync").Find(&st)
 
 	for _, task := range st {
-		watch, err := fsn.NewWatch(task.ID, task.RootDir, true)
+		watch, err := fsn.NewWatch(task.ID, task.RootDir, task.Ignore)
 		if err != nil {
-			return err
+			log.Println(err)
+			continue
 		}
 		s.WatchManger.AddNotifyChannel <- watch
+		s.SyncTask[task.ID] = task.RootDir
 	}
 
 	for i := 0; i < 3; i++ {
@@ -61,6 +64,9 @@ func (s *Syncer) ListenLocalChanges() error {
 }
 
 func (s *Syncer) ListenCloudDataChanges() error {
+	<-s.httpClient.Ch
+	log.Println("开启云端文件变化消息获取")
+
 	connect, err := s.httpClient.WebSocketConnect()
 	if err != nil {
 		panic(err)
@@ -96,19 +102,6 @@ func (s *Syncer) ListenCloudDataChanges() error {
 			s.DB.Where("id = ?", file.ParentDirID).Find(&dir)
 			s.Handle.FileChange(psm.Action, file, dir.Dir, s.SyncTask[file.SyncID])
 
-			//if psm.Action == "update" || psm.Action == "create" {
-			//	log.Println(file.Name, psm.Action)
-			//	err := s.Handle.FileWrite(file, dir.Dir, s.SyncTask[file.SyncID])
-			//	if err != nil {
-			//		log.Println(err)
-			//	}
-			//} else {
-			//	err := s.Handle.FileDelete(file, dir.Dir, s.SyncTask[file.SyncID])
-			//	if err != nil {
-			//		log.Println(err)
-			//	}
-			//}
-
 		case "dir":
 
 			var dir ent.Dir
@@ -120,18 +113,14 @@ func (s *Syncer) ListenCloudDataChanges() error {
 			json.Unmarshal(psm.Data, &synctask)
 
 			if psm.Action == "create" {
-				log.Println(synctask)
-
-				time.Sleep(time.Second * 3)
-				synctask.RootDir = "/Users/zylzyl/go/src/fsm_client/test/client2/dst"
+				synctask.Status = "created"
 				s.Handle.SyncTaskCreate(synctask)
-				s.SyncTask[synctask.ID] = synctask.RootDir
-				err := s.RestoreSyncTask(synctask.ID, synctask.RootDir)
-				if err != nil {
-					log.Println("cloud syncTask", err)
-				}
+
 			} else {
-				s.Handle.SyncTaskDelete(synctask)
+				synctask.Status = "delete"
+				synctask.Deleted = true
+				s.WatchManger.RemoveNotifyChannel <- synctask.ID
+				delete(s.SyncTask, synctask.ID)
 			}
 
 		default:
@@ -149,13 +138,14 @@ func (s *Syncer) Error() {
 	}
 }
 
-func (s *Syncer) CreateSyncTask(name, root string) error {
+func (s *Syncer) CreateSyncTask(st types.NewSyncTask) error {
 
 	task := ent.SyncTask{
-		Type:       "two",
-		Name:       name,
-		RootDir:    root,
+		Type:       st.Type,
+		Name:       st.Name,
+		RootDir:    st.Path,
 		Deleted:    false,
+		Ignore:     st.Ignore,
 		CreateTime: time.Now().Unix(),
 	}
 
@@ -165,80 +155,120 @@ func (s *Syncer) CreateSyncTask(name, root string) error {
 		if prefix := strings.HasPrefix(task.RootDir, st.RootDir); prefix {
 			return errors.New("不能添加子目录")
 		}
-
 		// todo add "/" or "\"
 		if prefix := strings.HasPrefix(st.RootDir, task.RootDir); prefix {
 			return errors.New("不能添加父目录")
 		}
 	}
 
+	//todo 添加任务时，应该在全量备份完成后 通知其他客户端添加了同步任务
 	if err := s.httpClient.SyncTaskCreate(&task); err != nil {
 		return err
 	}
+	task.Status = "syncing"
 	s.DB.Create(&task)
 
 	if err := s.Handle.ScannerPathToUpload(task.RootDir, task.ID); err != nil {
 		return err
 	}
 
-	watch, err := fsn.NewWatch(task.ID, task.RootDir, true)
+	watch, err := fsn.NewWatch(task.ID, task.RootDir, task.Ignore)
 	if err != nil {
 		return err
 	}
 
 	s.SyncTask[task.ID] = task.RootDir
 	s.WatchManger.AddNotifyChannel <- watch
+
+	task.Status = "sync"
+	s.DB.Save(&task)
 	return err
 }
 
-func (s *Syncer) DeleteSyncTask(syncID string, deleteFile bool) error {
-	var sync ent.SyncTask
-	s.DB.Where("id=?", syncID).Find(&sync)
+func (s *Syncer) DeleteSyncTask(del types.DeleteSyncTask) error {
+	s.WatchManger.RemoveNotifyChannel <- del.ID
 
-	if deleteFile {
+	var sync ent.SyncTask
+	s.DB.Where("id=?", del.ID).Find(&sync)
+	//todo 添加延迟
+
+	delete(s.SyncTask, sync.ID)
+
+	if del.DelLocal {
+		sync.Deleted = true
+		sync.Status = "delete"
+		s.DB.Save(&sync)
 		return s.Handle.DeleteAllFileByDir(sync.RootDir)
 	}
-	return s.httpClient.SyncTaskDelete(syncID)
-}
 
-func (s *Syncer) CancelSyncTask(syncID string) error {
-	var sync ent.SyncTask
-	s.DB.Where("id=?", syncID).Find(&sync)
+	if del.DelCloud {
+		s.DB.Delete(&sync)
+		return s.httpClient.SyncTaskDelete(del.ID)
+	}
 
-	//todo 关闭本地文件夹监控
-	//todo 将数据库 更新为 delete
-	//todo 过滤掉云端的数据变化消息
 	return nil
 }
 
-func (s *Syncer) PauseSyncTask() {
+// todo  增加暂停时长
+func (s *Syncer) PauseAndContinueTask(syncID string) error {
+	var task ent.SyncTask
+	s.DB.Where("id = ?", syncID).Find(&task)
 
-	//syncID
-	//path
-	//bool
-	// ignore
-	//
-	//
-	//s.WatchManger.AddAndDeleteChannel <-
-	// todo 关闭本地文件夹监控
-	//todo 过滤掉云端的数据变化消息
+	if task.Status == "pause" {
+		watch, err := fsn.NewWatch(task.ID, task.RootDir, task.Ignore)
+		if err != nil {
+			return err
+		}
+
+		task.Status = "sync"
+		s.SyncTask[task.ID] = task.RootDir
+		s.WatchManger.AddNotifyChannel <- watch
+	}
+
+	if task.Status == "sync" || task.Status == "syncing" {
+		task.Status = "pause"
+		s.WatchManger.RemoveNotifyChannel <- syncID
+		delete(s.SyncTask, syncID)
+	}
+
+	s.DB.Save(&task)
+	return nil
 }
 
-func (s *Syncer) Continue() {
+func (s *Syncer) RecoverTask(st types.RecSyncTask) error {
+	var synctask ent.SyncTask
+	s.DB.Where("id = ?", st.ID).Find(&synctask)
 
-}
+	synctask.Name = st.Name
+	synctask.RootDir = st.Path
+	synctask.Ignore = st.Ignore
+	synctask.Status = "syncing"
+	s.DB.Save(&synctask)
 
-func (s *Syncer) RestoreSyncTask(taskID, path string) error {
-	//todo 更改同步任务状态
-	err := s.Handle.GetSyncTaskToDownload(taskID, path)
+	err := s.Handle.GetSyncTaskToDownload(synctask.ID, synctask.RootDir)
 	if err != nil {
 		return err
 	}
 
-	watch, err := fsn.NewWatch(taskID, path, true)
+	watch, err := fsn.NewWatch(synctask.ID, synctask.RootDir, synctask.Ignore)
 	if err != nil {
 		return err
 	}
 	s.WatchManger.AddNotifyChannel <- watch
+
+	s.SyncTask[synctask.ID] = synctask.RootDir
+	synctask.Status = "sync"
+	s.DB.Save(&synctask)
+
 	return err
 }
+
+//func (s *Syncer) CancelSyncTask(syncID string) error {
+//	var sync ent.SyncTask
+//	s.DB.Where("id=?", syncID).Find(&sync)
+//
+//	//todo 关闭本地文件夹监控
+//	//todo 将数据库 更新为 delete
+//	//todo 过滤掉云端的数据变化消息
+//	return nil
+//}

@@ -43,9 +43,21 @@ func (stc *SyncTaskCreate) SetRootDir(s string) *SyncTaskCreate {
 	return stc
 }
 
+// SetIgnore sets the "ignore" field.
+func (stc *SyncTaskCreate) SetIgnore(b bool) *SyncTaskCreate {
+	stc.mutation.SetIgnore(b)
+	return stc
+}
+
 // SetDeleted sets the "deleted" field.
 func (stc *SyncTaskCreate) SetDeleted(b bool) *SyncTaskCreate {
 	stc.mutation.SetDeleted(b)
+	return stc
+}
+
+// SetStatus sets the "status" field.
+func (stc *SyncTaskCreate) SetStatus(s string) *SyncTaskCreate {
+	stc.mutation.SetStatus(s)
 	return stc
 }
 
@@ -107,8 +119,14 @@ func (stc *SyncTaskCreate) check() error {
 	if _, ok := stc.mutation.RootDir(); !ok {
 		return &ValidationError{Name: "root_dir", err: errors.New(`ent: missing required field "SyncTask.root_dir"`)}
 	}
+	if _, ok := stc.mutation.Ignore(); !ok {
+		return &ValidationError{Name: "ignore", err: errors.New(`ent: missing required field "SyncTask.ignore"`)}
+	}
 	if _, ok := stc.mutation.Deleted(); !ok {
 		return &ValidationError{Name: "deleted", err: errors.New(`ent: missing required field "SyncTask.deleted"`)}
+	}
+	if _, ok := stc.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "SyncTask.status"`)}
 	}
 	if _, ok := stc.mutation.CreateTime(); !ok {
 		return &ValidationError{Name: "create_time", err: errors.New(`ent: missing required field "SyncTask.create_time"`)}
@@ -164,9 +182,17 @@ func (stc *SyncTaskCreate) createSpec() (*SyncTask, *sqlgraph.CreateSpec) {
 		_spec.SetField(synctask.FieldRootDir, field.TypeString, value)
 		_node.RootDir = value
 	}
+	if value, ok := stc.mutation.Ignore(); ok {
+		_spec.SetField(synctask.FieldIgnore, field.TypeBool, value)
+		_node.Ignore = value
+	}
 	if value, ok := stc.mutation.Deleted(); ok {
 		_spec.SetField(synctask.FieldDeleted, field.TypeBool, value)
 		_node.Deleted = value
+	}
+	if value, ok := stc.mutation.Status(); ok {
+		_spec.SetField(synctask.FieldStatus, field.TypeString, value)
+		_node.Status = value
 	}
 	if value, ok := stc.mutation.CreateTime(); ok {
 		_spec.SetField(synctask.FieldCreateTime, field.TypeInt64, value)

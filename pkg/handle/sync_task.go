@@ -9,5 +9,6 @@ func (h *Handle) SyncTaskCreate(synctask ent.SyncTask) {
 }
 
 func (h *Handle) SyncTaskDelete(synctask ent.SyncTask) {
+
 	h.DB.Delete(&synctask)
 }

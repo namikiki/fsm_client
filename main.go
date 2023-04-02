@@ -1,9 +1,7 @@
 package main
 
 import (
-	"log"
-	"os"
-
+	httpapi "fsm_client/api/http"
 	"fsm_client/pkg/config"
 	"fsm_client/pkg/database"
 	fsn "fsm_client/pkg/fsnotify"
@@ -13,20 +11,28 @@ import (
 	"fsm_client/pkg/mock"
 	"fsm_client/pkg/sync"
 	"fsm_client/pkg/types"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"log"
 
 	"github.com/google/uuid"
 	"go.uber.org/fx"
 )
 
-func Init() (int64, *types.Config) {
+func Init() (int64, *types.Config, *gin.Engine) {
 	cfg, _ := config.ReadConfigFile()
 	cfg.Device.ClientID = uuid.NewString()
 	log.Println(cfg)
-	return 100, cfg
+
+	engine := gin.Default()
+
+	return 100, cfg, engine
 }
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Llongfile)
+
+	var api *httpapi.Handle
 
 	err := fx.New(
 
@@ -46,12 +52,13 @@ func main() {
 		),
 
 		fx.Invoke(
-			func(client *httpclient.Client, reg types.UserRegister) {
-				client.Register(reg)
+
+			func(e *gin.Engine, client *httpclient.Client, sync *sync.Syncer, db *gorm.DB) {
+				api = httpapi.New(e, client, sync, db)
 			},
 
-			func(client *httpclient.Client, account types.UserLoginReq) {
-				client.Login(account)
+			func(sync *sync.Syncer) {
+				go sync.ListenCloudDataChanges()
 			},
 
 			func(sync *sync.Syncer) {
@@ -64,15 +71,31 @@ func main() {
 				go sync.ListenLocalChanges()
 			},
 
-			func(sync *sync.Syncer) {
-				go sync.ListenCloudDataChanges()
+			func(client *httpclient.Client, reg types.UserRegister) {
+				client.Register(reg)
 			},
 
-			func(sync *sync.Syncer) {
-				if os.Args[1] != "sla" {
-					sync.CreateSyncTask("test", "/Users/zylzyl/go/src/fsm_client/test/client1/src")
+			func(client *httpclient.Client) {
+				if err := client.LoginByJWT(); err != nil {
+					return
 				}
 			},
+
+			//func(sync *sync.Syncer) {
+			//
+			//	st := types.NewSyncTask{
+			//		Name:   "test",
+			//		Path:   "/Users/zylzyl/go/src/fsm_client/test/client1/src",
+			//		Type:   "two",
+			//		Ignore: true,
+			//	}
+			//
+			//	if os.Args[1] != "sla" {
+			//		sync.CreateSyncTask(st)
+			//	}
+			//
+			//},
+
 		),
 	).Err()
 
@@ -80,5 +103,8 @@ func main() {
 		log.Println(err)
 	}
 
-	select {}
+	if err := api.App.Run(":9000"); err != nil {
+		log.Fatal(err)
+	}
+
 }

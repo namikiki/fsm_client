@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fsm_client/pkg/sec"
 	"log"
 	"net/http"
 
@@ -39,19 +40,49 @@ func (c *Client) Login(user types.UserLoginReq) error {
 		return err
 	}
 
-	var res types.ApiResult
-	if err = json.NewDecoder(resp.Body).Decode(&res); err != nil {
+	return c.loginRes(resp)
+}
+
+func (c *Client) LoginByJWT() error {
+	jwt, err := sec.ReadJWT()
+	if err != nil {
+		log.Println(err)
 		return err
 	}
 
+	request, _ := http.NewRequest("POST", c.BaseUrl+"/jwt", nil)
+	request.Header.Add("jwt", string(jwt))
+	resp, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return err
+	}
+
+	return c.loginRes(resp)
+}
+
+func (c *Client) loginRes(resp *http.Response) error {
+
+	var res types.ApiResult
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
 	var lr types.LoginRes
-	json.Unmarshal(res.Data, &lr)
+	if err := json.Unmarshal(res.Data, &lr); err != nil || lr.UserID == "" || lr.Token == "" {
+		return errors.New("登陆失败" + err.Error())
+	}
+
+	if err := sec.SaveJWT(lr.Token); err != nil {
+		return err
+	}
 
 	c.JWT = lr.Token
 	c.UserID = lr.UserID
 	c.HttpClient = newHttpClient(lr.Token, c.Conf.Device.ClientID)
-
-	return err
+	c.Ch <- 1
+	c.Ch <- 1
+	return nil
 }
 
 func (c *Client) WebSocketConnect() (*websocket.Conn, error) {
@@ -66,8 +97,4 @@ func (c *Client) WebSocketConnect() (*websocket.Conn, error) {
 	}
 	log.Println("websocket connect success")
 	return dial, err
-}
-
-func (c *Client) LoginOut() {
-
 }

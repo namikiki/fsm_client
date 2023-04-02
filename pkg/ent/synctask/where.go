@@ -73,9 +73,19 @@ func RootDir(v string) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldEQ(FieldRootDir, v))
 }
 
+// Ignore applies equality check predicate on the "ignore" field. It's identical to IgnoreEQ.
+func Ignore(v bool) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldEQ(FieldIgnore, v))
+}
+
 // Deleted applies equality check predicate on the "deleted" field. It's identical to DeletedEQ.
 func Deleted(v bool) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldEQ(FieldDeleted, v))
+}
+
+// Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
+func Status(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldEQ(FieldStatus, v))
 }
 
 // CreateTime applies equality check predicate on the "create_time" field. It's identical to CreateTimeEQ.
@@ -343,6 +353,16 @@ func RootDirContainsFold(v string) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldContainsFold(FieldRootDir, v))
 }
 
+// IgnoreEQ applies the EQ predicate on the "ignore" field.
+func IgnoreEQ(v bool) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldEQ(FieldIgnore, v))
+}
+
+// IgnoreNEQ applies the NEQ predicate on the "ignore" field.
+func IgnoreNEQ(v bool) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldNEQ(FieldIgnore, v))
+}
+
 // DeletedEQ applies the EQ predicate on the "deleted" field.
 func DeletedEQ(v bool) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldEQ(FieldDeleted, v))
@@ -351,6 +371,71 @@ func DeletedEQ(v bool) predicate.SyncTask {
 // DeletedNEQ applies the NEQ predicate on the "deleted" field.
 func DeletedNEQ(v bool) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldNEQ(FieldDeleted, v))
+}
+
+// StatusEQ applies the EQ predicate on the "status" field.
+func StatusEQ(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldEQ(FieldStatus, v))
+}
+
+// StatusNEQ applies the NEQ predicate on the "status" field.
+func StatusNEQ(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldNEQ(FieldStatus, v))
+}
+
+// StatusIn applies the In predicate on the "status" field.
+func StatusIn(vs ...string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldIn(FieldStatus, vs...))
+}
+
+// StatusNotIn applies the NotIn predicate on the "status" field.
+func StatusNotIn(vs ...string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// StatusGT applies the GT predicate on the "status" field.
+func StatusGT(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldGT(FieldStatus, v))
+}
+
+// StatusGTE applies the GTE predicate on the "status" field.
+func StatusGTE(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldGTE(FieldStatus, v))
+}
+
+// StatusLT applies the LT predicate on the "status" field.
+func StatusLT(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldLT(FieldStatus, v))
+}
+
+// StatusLTE applies the LTE predicate on the "status" field.
+func StatusLTE(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldLTE(FieldStatus, v))
+}
+
+// StatusContains applies the Contains predicate on the "status" field.
+func StatusContains(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldContains(FieldStatus, v))
+}
+
+// StatusHasPrefix applies the HasPrefix predicate on the "status" field.
+func StatusHasPrefix(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldHasPrefix(FieldStatus, v))
+}
+
+// StatusHasSuffix applies the HasSuffix predicate on the "status" field.
+func StatusHasSuffix(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldHasSuffix(FieldStatus, v))
+}
+
+// StatusEqualFold applies the EqualFold predicate on the "status" field.
+func StatusEqualFold(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldEqualFold(FieldStatus, v))
+}
+
+// StatusContainsFold applies the ContainsFold predicate on the "status" field.
+func StatusContainsFold(v string) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldContainsFold(FieldStatus, v))
 }
 
 // CreateTimeEQ applies the EQ predicate on the "create_time" field.

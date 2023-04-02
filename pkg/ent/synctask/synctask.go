@@ -15,8 +15,12 @@ const (
 	FieldName = "name"
 	// FieldRootDir holds the string denoting the root_dir field in the database.
 	FieldRootDir = "root_dir"
+	// FieldIgnore holds the string denoting the ignore field in the database.
+	FieldIgnore = "ignore"
 	// FieldDeleted holds the string denoting the deleted field in the database.
 	FieldDeleted = "deleted"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
 	// FieldCreateTime holds the string denoting the create_time field in the database.
 	FieldCreateTime = "create_time"
 	// Table holds the table name of the synctask in the database.
@@ -30,7 +34,9 @@ var Columns = []string{
 	FieldType,
 	FieldName,
 	FieldRootDir,
+	FieldIgnore,
 	FieldDeleted,
+	FieldStatus,
 	FieldCreateTime,
 }
 
