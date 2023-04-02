@@ -1,4 +1,4 @@
-//go:build linux || macos
+//go:build windows
 
 package handle
 
@@ -37,50 +37,52 @@ func (h *Handle) ScannerPathToUpload(rooPath, syncID string) error {
 
 	rootPathLen := len(rooPath)
 	return filepath.WalkDir(rooPath, func(path string, d fs.DirEntry, err error) error {
-		rawPath := path
 
-		path = path[rootPathLen:]
-		if d.IsDir() {
+		absPath := filepath.ToSlash(path[rootPathLen:])
 
-			dir := ent.Dir{
-				SyncID:     syncID,
-				Dir:        path + "/", // todo Split
-				Level:      uint64(len(strings.Split(path, "/"))),
-				Deleted:    false,
-				CreateTime: time.Now().Unix(),
-				ModTime:    time.Now().Unix(),
-			}
-			if err := h.HttpClient.DirCreate(&dir); err != nil {
-				return err
-			}
+		log.Printf("raw= %s, ,abs=%s", path, absPath)
 
-			h.DB.Create(&dir)
-			return err
-		}
+		//if d.IsDir() {
+		//
+		//	dir := ent.Dir{
+		//		SyncID:     syncID,
+		//		Dir:        path + "/", // todo Split
+		//		Level:      uint64(len(strings.Split(path, "/"))),
+		//		Deleted:    false,
+		//		CreateTime: time.Now().Unix(),
+		//		ModTime:    time.Now().Unix(),
+		//	}
+		//	if err := h.HttpClient.DirCreate(&dir); err != nil {
+		//		return err
+		//	}
+		//
+		//	h.DB.Create(&dir)
+		//	return err
+		//}
 
-		level := len(strings.Split(path, "/"))
-		suffix := strings.TrimSuffix(path, d.Name())
-		var dir ent.Dir
-		h.DB.Where("dir= ? and level = ?", suffix, level-1).Find(&dir)
-		info, _ := d.Info()
-
-		file := ent.File{
-			SyncID:      syncID,
-			Name:        d.Name(),
-			ParentDirID: dir.ID,
-			Level:       uint64(level),
-			Size:        info.Size(),
-			Deleted:     false,
-			CreateTime:  time.Now().Unix(),
-			ModTime:     info.ModTime().Unix(),
-		}
-
-		fileIO, err := os.Open(rawPath)
-		if err := h.HttpClient.FileCreate(&file, fileIO); err != nil {
-			return err
-		}
-
-		h.DB.Create(&file)
+		//level := len(strings.Split(path, "/"))
+		//suffix := strings.TrimSuffix(path, d.Name())
+		//var dir ent.Dir
+		//h.DB.Where("dir= ? and level = ?", suffix, level-1).Find(&dir)
+		//info, _ := d.Info()
+		//
+		//file := ent.File{
+		//	SyncID:      syncID,
+		//	Name:        d.Name(),
+		//	ParentDirID: dir.ID,
+		//	Level:       uint64(level),
+		//	Size:        info.Size(),
+		//	Deleted:     false,
+		//	CreateTime:  time.Now().Unix(),
+		//	ModTime:     info.ModTime().Unix(),
+		//}
+		//
+		//fileIO, err := os.Open(rawPath)
+		//if err := h.HttpClient.FileCreate(&file, fileIO); err != nil {
+		//	return err
+		//}
+		//
+		//h.DB.Create(&file)
 		return err
 	})
 

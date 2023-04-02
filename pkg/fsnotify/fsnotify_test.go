@@ -2,6 +2,7 @@ package fsn
 
 import (
 	"log"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -9,16 +10,18 @@ import (
 )
 
 func TestName(t *testing.T) {
-	var a [2]int
+	c := make(chan notify.EventInfo, 100)
+	err := notify.Watch(filepath.Join("C:\\Users\\surflabom\\Desktop\\MyDediServer", "..."), c, notify.All)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-	log.Println(len(a), cap(a))
+	for {
+		e := <-c
+		log.Println(e.Path(), e.Event())
+	}
 
-	//watcher, _ := fsnotify.NewWatcher()
-	//watcher.Add("/Users/zylzyl/Desktop/markdown/Clanag/")
-	//for {
-	//	e := <-watcher.Events
-	//	log.Println(e)
-	//}
 }
 
 // import (
