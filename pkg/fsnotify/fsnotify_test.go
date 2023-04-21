@@ -10,18 +10,44 @@ import (
 )
 
 func TestName(t *testing.T) {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
 	c := make(chan notify.EventInfo, 100)
-	err := notify.Watch(filepath.Join("C:\\Users\\surflabom\\Desktop\\MyDediServer", "..."), c, notify.All)
+	err := notify.Watch(filepath.Join("C:\\Users\\surflabom\\Desktop\\lib", "..."), c, notify.All)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	for {
-		e := <-c
-		log.Println(e.Path(), e.Event())
-	}
+	//for {
+	e := <-c
+	log.Println(e.Path(), e.Event())
+	//}
 
+	notify.Stop(c)
+
+	select {}
+}
+
+func TestG(t *testing.T) {
+	//
+	//log.SetFlags(log.LstdFlags | log.Llongfile)
+	//c := make(chan notify.EventInfo, 100)
+	//if err := notify.Watch("C:\\Users\\surflabom\\Desktop\\lib", c, notify.FileNotifyChangeDirName); err != nil {
+	//	log.Fatal(err)
+	//}
+	//defer notify.Stop(c)
+	//
+	//// Wait for actions.
+	//for ei := range c {
+	//	switch ei.Event() {
+	//	case notify.FileActionAdded, notify.FileActionRenamedNewName:
+	//		log.Println("Created:", ei.Path())
+	//	case notify.FileActionRemoved, notify.FileActionRenamedOldName:
+	//		log.Println("Removed:", ei.Path())
+	//	case notify.FileActionModified:
+	//		panic("notify: unexpected action")
+	//	}
+	//}
 }
 
 // import (

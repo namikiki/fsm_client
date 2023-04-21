@@ -32,10 +32,26 @@ func (h *Handle) initRoute() {
 
 	h.App.GET("/syncTask", h.GetSyncTask)
 	h.App.POST("/syncTask", h.NewSyncTask)
-	h.App.DELETE("/syncTask", h.RemoveSyncTask)
+	h.App.DELETE("/syncTask", h.DeleteSyncTask)
 	h.App.GET("/syncTasks", h.GetSyncTasks)
 
 	h.App.POST("/recover", h.RecoverSyncTask)
+	h.App.POST("/pause", h.pause)
+}
+
+func (h *Handle) pause(c *gin.Context) {
+	var p types.PauseSyncTask
+	if err := c.BindJSON(&p); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	if err := h.Syncer.PauseAndContinueTask(p.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
 }
 
 func (h *Handle) RecoverSyncTask(c *gin.Context) {
@@ -45,14 +61,12 @@ func (h *Handle) RecoverSyncTask(c *gin.Context) {
 		return
 	}
 
-	log.Println(st)
-	return
-
-	//todo
 	if err := h.Syncer.RecoverTask(st); err != nil {
+		c.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
+	c.JSON(http.StatusOK, nil)
 }
 
 func (h *Handle) GetLoginStatus(c *gin.Context) {
@@ -103,9 +117,6 @@ func (h *Handle) NewSyncTask(c *gin.Context) {
 		return
 	}
 
-	log.Println(st)
-	return
-
 	if err := h.Syncer.CreateSyncTask(st); err != nil {
 		c.JSON(http.StatusBadGateway, err)
 		return
@@ -113,8 +124,18 @@ func (h *Handle) NewSyncTask(c *gin.Context) {
 	c.JSON(http.StatusOK, nil)
 }
 
-func (h *Handle) RemoveSyncTask(c *gin.Context) {
+func (h *Handle) DeleteSyncTask(c *gin.Context) {
+	var ds types.DeleteSyncTask
+	if err := c.BindJSON(&ds); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
 
+	if err := h.Syncer.DeleteSyncTask(ds); err != nil {
+		c.JSON(http.StatusBadGateway, err)
+		return
+	}
+	c.JSON(http.StatusOK, nil)
 }
 
 func (h *Handle) GetSyncTask(c *gin.Context) {

@@ -79,8 +79,8 @@ func WriteConfigToFile() error {
 	_, err = file.WriteString(fmt.Sprintf(DefaultConfig,
 		GenerateClientID(),
 		GetPlatformType(),
-		"http://127.0.0.1:8080",
-		"ws://127.0.0.1:8080",
+		"http://192.168.2.100:8080",
+		"ws://192.168.2.100:8080",
 	))
 
 	return err

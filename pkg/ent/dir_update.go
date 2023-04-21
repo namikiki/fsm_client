@@ -40,15 +40,15 @@ func (du *DirUpdate) SetDir(s string) *DirUpdate {
 }
 
 // SetLevel sets the "level" field.
-func (du *DirUpdate) SetLevel(u uint64) *DirUpdate {
+func (du *DirUpdate) SetLevel(i int) *DirUpdate {
 	du.mutation.ResetLevel()
-	du.mutation.SetLevel(u)
+	du.mutation.SetLevel(i)
 	return du
 }
 
-// AddLevel adds u to the "level" field.
-func (du *DirUpdate) AddLevel(u int64) *DirUpdate {
-	du.mutation.AddLevel(u)
+// AddLevel adds i to the "level" field.
+func (du *DirUpdate) AddLevel(i int) *DirUpdate {
+	du.mutation.AddLevel(i)
 	return du
 }
 
@@ -132,10 +132,10 @@ func (du *DirUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.SetField(dir.FieldDir, field.TypeString, value)
 	}
 	if value, ok := du.mutation.Level(); ok {
-		_spec.SetField(dir.FieldLevel, field.TypeUint64, value)
+		_spec.SetField(dir.FieldLevel, field.TypeInt, value)
 	}
 	if value, ok := du.mutation.AddedLevel(); ok {
-		_spec.AddField(dir.FieldLevel, field.TypeUint64, value)
+		_spec.AddField(dir.FieldLevel, field.TypeInt, value)
 	}
 	if value, ok := du.mutation.Deleted(); ok {
 		_spec.SetField(dir.FieldDeleted, field.TypeBool, value)
@@ -185,15 +185,15 @@ func (duo *DirUpdateOne) SetDir(s string) *DirUpdateOne {
 }
 
 // SetLevel sets the "level" field.
-func (duo *DirUpdateOne) SetLevel(u uint64) *DirUpdateOne {
+func (duo *DirUpdateOne) SetLevel(i int) *DirUpdateOne {
 	duo.mutation.ResetLevel()
-	duo.mutation.SetLevel(u)
+	duo.mutation.SetLevel(i)
 	return duo
 }
 
-// AddLevel adds u to the "level" field.
-func (duo *DirUpdateOne) AddLevel(u int64) *DirUpdateOne {
-	duo.mutation.AddLevel(u)
+// AddLevel adds i to the "level" field.
+func (duo *DirUpdateOne) AddLevel(i int) *DirUpdateOne {
+	duo.mutation.AddLevel(i)
 	return duo
 }
 
@@ -307,10 +307,10 @@ func (duo *DirUpdateOne) sqlSave(ctx context.Context) (_node *Dir, err error) {
 		_spec.SetField(dir.FieldDir, field.TypeString, value)
 	}
 	if value, ok := duo.mutation.Level(); ok {
-		_spec.SetField(dir.FieldLevel, field.TypeUint64, value)
+		_spec.SetField(dir.FieldLevel, field.TypeInt, value)
 	}
 	if value, ok := duo.mutation.AddedLevel(); ok {
-		_spec.AddField(dir.FieldLevel, field.TypeUint64, value)
+		_spec.AddField(dir.FieldLevel, field.TypeInt, value)
 	}
 	if value, ok := duo.mutation.Deleted(); ok {
 		_spec.SetField(dir.FieldDeleted, field.TypeBool, value)

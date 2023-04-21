@@ -53,15 +53,12 @@ var (
 	GetFileChange = func(lt, rt string) string {
 		return fmt.Sprintf("SELECT %s.* FROM %s LEFT JOIN %s ON %s.name = %s.name and %s.sync_id = %s.sync_id and %s.level = %s.level  WHERE %s.name IS NULL;",
 			lt, lt, rt, lt, rt, lt, rt, lt, rt, rt)
-
 	}
 
 	getFileUpdate = func(lt, rt string) string {
 		return fmt.Sprintf("SELECT %s.* FROM %s LEFT JOIN %s ON %s.name = %s.name and %s.sync_id = %s.sync_id and %s.level = %s.level  WHERE  %s.mod_time != %s.mod_time;",
 			lt, lt, rt, lt, rt, lt, rt, lt, rt, lt, rt)
 	}
-	//
-
 )
 
 func (c *Checker) insertDirs(tableName string, dirs []ent.Dir) error {

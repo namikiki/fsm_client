@@ -64,7 +64,7 @@ func Dir(v string) predicate.Dir {
 }
 
 // Level applies equality check predicate on the "level" field. It's identical to LevelEQ.
-func Level(v uint64) predicate.Dir {
+func Level(v int) predicate.Dir {
 	return predicate.Dir(sql.FieldEQ(FieldLevel, v))
 }
 
@@ -214,42 +214,42 @@ func DirContainsFold(v string) predicate.Dir {
 }
 
 // LevelEQ applies the EQ predicate on the "level" field.
-func LevelEQ(v uint64) predicate.Dir {
+func LevelEQ(v int) predicate.Dir {
 	return predicate.Dir(sql.FieldEQ(FieldLevel, v))
 }
 
 // LevelNEQ applies the NEQ predicate on the "level" field.
-func LevelNEQ(v uint64) predicate.Dir {
+func LevelNEQ(v int) predicate.Dir {
 	return predicate.Dir(sql.FieldNEQ(FieldLevel, v))
 }
 
 // LevelIn applies the In predicate on the "level" field.
-func LevelIn(vs ...uint64) predicate.Dir {
+func LevelIn(vs ...int) predicate.Dir {
 	return predicate.Dir(sql.FieldIn(FieldLevel, vs...))
 }
 
 // LevelNotIn applies the NotIn predicate on the "level" field.
-func LevelNotIn(vs ...uint64) predicate.Dir {
+func LevelNotIn(vs ...int) predicate.Dir {
 	return predicate.Dir(sql.FieldNotIn(FieldLevel, vs...))
 }
 
 // LevelGT applies the GT predicate on the "level" field.
-func LevelGT(v uint64) predicate.Dir {
+func LevelGT(v int) predicate.Dir {
 	return predicate.Dir(sql.FieldGT(FieldLevel, v))
 }
 
 // LevelGTE applies the GTE predicate on the "level" field.
-func LevelGTE(v uint64) predicate.Dir {
+func LevelGTE(v int) predicate.Dir {
 	return predicate.Dir(sql.FieldGTE(FieldLevel, v))
 }
 
 // LevelLT applies the LT predicate on the "level" field.
-func LevelLT(v uint64) predicate.Dir {
+func LevelLT(v int) predicate.Dir {
 	return predicate.Dir(sql.FieldLT(FieldLevel, v))
 }
 
 // LevelLTE applies the LTE predicate on the "level" field.
-func LevelLTE(v uint64) predicate.Dir {
+func LevelLTE(v int) predicate.Dir {
 	return predicate.Dir(sql.FieldLTE(FieldLevel, v))
 }
 

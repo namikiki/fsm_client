@@ -1,7 +1,6 @@
 package ignore
 
 import (
-	"fmt"
 	"regexp"
 )
 
@@ -12,13 +11,10 @@ type regexpRule struct {
 
 func newRegexpRule(expr string) (Rule, error) {
 	reg, err := regexp.Compile(expr)
-	if err != nil {
-		return nil, fmt.Errorf("parse %s rule failed, expression=%s, %w", "regexpSwitch", expr, err)
-	}
 	return &regexpRule{
 		expr: expr,
 		reg:  reg,
-	}, nil
+	}, err
 }
 
 func (r *regexpRule) Match(s string) bool {

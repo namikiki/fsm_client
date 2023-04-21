@@ -57,18 +57,6 @@ func (stu *SyncTaskUpdate) SetIgnore(b bool) *SyncTaskUpdate {
 	return stu
 }
 
-// SetDeleted sets the "deleted" field.
-func (stu *SyncTaskUpdate) SetDeleted(b bool) *SyncTaskUpdate {
-	stu.mutation.SetDeleted(b)
-	return stu
-}
-
-// SetStatus sets the "status" field.
-func (stu *SyncTaskUpdate) SetStatus(s string) *SyncTaskUpdate {
-	stu.mutation.SetStatus(s)
-	return stu
-}
-
 // SetCreateTime sets the "create_time" field.
 func (stu *SyncTaskUpdate) SetCreateTime(i int64) *SyncTaskUpdate {
 	stu.mutation.ResetCreateTime()
@@ -79,6 +67,12 @@ func (stu *SyncTaskUpdate) SetCreateTime(i int64) *SyncTaskUpdate {
 // AddCreateTime adds i to the "create_time" field.
 func (stu *SyncTaskUpdate) AddCreateTime(i int64) *SyncTaskUpdate {
 	stu.mutation.AddCreateTime(i)
+	return stu
+}
+
+// SetStatus sets the "status" field.
+func (stu *SyncTaskUpdate) SetStatus(s string) *SyncTaskUpdate {
+	stu.mutation.SetStatus(s)
 	return stu
 }
 
@@ -138,17 +132,14 @@ func (stu *SyncTaskUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := stu.mutation.Ignore(); ok {
 		_spec.SetField(synctask.FieldIgnore, field.TypeBool, value)
 	}
-	if value, ok := stu.mutation.Deleted(); ok {
-		_spec.SetField(synctask.FieldDeleted, field.TypeBool, value)
-	}
-	if value, ok := stu.mutation.Status(); ok {
-		_spec.SetField(synctask.FieldStatus, field.TypeString, value)
-	}
 	if value, ok := stu.mutation.CreateTime(); ok {
 		_spec.SetField(synctask.FieldCreateTime, field.TypeInt64, value)
 	}
 	if value, ok := stu.mutation.AddedCreateTime(); ok {
 		_spec.AddField(synctask.FieldCreateTime, field.TypeInt64, value)
+	}
+	if value, ok := stu.mutation.Status(); ok {
+		_spec.SetField(synctask.FieldStatus, field.TypeString, value)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, stu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -200,18 +191,6 @@ func (stuo *SyncTaskUpdateOne) SetIgnore(b bool) *SyncTaskUpdateOne {
 	return stuo
 }
 
-// SetDeleted sets the "deleted" field.
-func (stuo *SyncTaskUpdateOne) SetDeleted(b bool) *SyncTaskUpdateOne {
-	stuo.mutation.SetDeleted(b)
-	return stuo
-}
-
-// SetStatus sets the "status" field.
-func (stuo *SyncTaskUpdateOne) SetStatus(s string) *SyncTaskUpdateOne {
-	stuo.mutation.SetStatus(s)
-	return stuo
-}
-
 // SetCreateTime sets the "create_time" field.
 func (stuo *SyncTaskUpdateOne) SetCreateTime(i int64) *SyncTaskUpdateOne {
 	stuo.mutation.ResetCreateTime()
@@ -222,6 +201,12 @@ func (stuo *SyncTaskUpdateOne) SetCreateTime(i int64) *SyncTaskUpdateOne {
 // AddCreateTime adds i to the "create_time" field.
 func (stuo *SyncTaskUpdateOne) AddCreateTime(i int64) *SyncTaskUpdateOne {
 	stuo.mutation.AddCreateTime(i)
+	return stuo
+}
+
+// SetStatus sets the "status" field.
+func (stuo *SyncTaskUpdateOne) SetStatus(s string) *SyncTaskUpdateOne {
+	stuo.mutation.SetStatus(s)
 	return stuo
 }
 
@@ -311,17 +296,14 @@ func (stuo *SyncTaskUpdateOne) sqlSave(ctx context.Context) (_node *SyncTask, er
 	if value, ok := stuo.mutation.Ignore(); ok {
 		_spec.SetField(synctask.FieldIgnore, field.TypeBool, value)
 	}
-	if value, ok := stuo.mutation.Deleted(); ok {
-		_spec.SetField(synctask.FieldDeleted, field.TypeBool, value)
-	}
-	if value, ok := stuo.mutation.Status(); ok {
-		_spec.SetField(synctask.FieldStatus, field.TypeString, value)
-	}
 	if value, ok := stuo.mutation.CreateTime(); ok {
 		_spec.SetField(synctask.FieldCreateTime, field.TypeInt64, value)
 	}
 	if value, ok := stuo.mutation.AddedCreateTime(); ok {
 		_spec.AddField(synctask.FieldCreateTime, field.TypeInt64, value)
+	}
+	if value, ok := stuo.mutation.Status(); ok {
+		_spec.SetField(synctask.FieldStatus, field.TypeString, value)
 	}
 	_node = &SyncTask{config: stuo.config}
 	_spec.Assign = _node.assignValues

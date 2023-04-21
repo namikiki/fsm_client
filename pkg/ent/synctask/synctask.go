@@ -17,12 +17,10 @@ const (
 	FieldRootDir = "root_dir"
 	// FieldIgnore holds the string denoting the ignore field in the database.
 	FieldIgnore = "ignore"
-	// FieldDeleted holds the string denoting the deleted field in the database.
-	FieldDeleted = "deleted"
-	// FieldStatus holds the string denoting the status field in the database.
-	FieldStatus = "status"
 	// FieldCreateTime holds the string denoting the create_time field in the database.
 	FieldCreateTime = "create_time"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
 	// Table holds the table name of the synctask in the database.
 	Table = "sync_tasks"
 )
@@ -35,9 +33,8 @@ var Columns = []string{
 	FieldName,
 	FieldRootDir,
 	FieldIgnore,
-	FieldDeleted,
-	FieldStatus,
 	FieldCreateTime,
+	FieldStatus,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).

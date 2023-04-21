@@ -22,23 +22,24 @@ func (ig *Ignore) Match(s string) bool {
 	return false
 }
 
-func (ig *Ignore) AddFilepathRule(expr string) error {
-	rule, err := newFilePathRule(expr)
-	if err != nil {
-		return err
-	}
-	ig.rules = append(ig.rules, rule)
-	return nil
-}
-
-func (ig *Ignore) AddRegexpRule(expr string) error {
-	rule, err := newRegexpRule(expr)
-	if err != nil {
-		return err
-	}
-	ig.rules = append(ig.rules, rule)
-	return nil
-}
+//
+//func (ig *Ignore) AddFilepathRule(expr string) error {
+//	rule, err := newFilePathRule(expr)
+//	if err != nil {
+//		return err
+//	}
+//	ig.rules = append(ig.rules, rule)
+//	return nil
+//}
+//
+//func (ig *Ignore) AddRegexpRule(expr string) error {
+//	rule, err := newRegexpRule(expr)
+//	if err != nil {
+//		return err
+//	}
+//	ig.rules = append(ig.rules, rule)
+//	return nil
+//}
 
 func parseIgnoreConfig(ignoreConfig *types.Ignore) ([]Rule, error) {
 	var rs []Rule

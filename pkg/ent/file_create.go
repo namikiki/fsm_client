@@ -38,8 +38,8 @@ func (fc *FileCreate) SetParentDirID(s string) *FileCreate {
 }
 
 // SetLevel sets the "level" field.
-func (fc *FileCreate) SetLevel(u uint64) *FileCreate {
-	fc.mutation.SetLevel(u)
+func (fc *FileCreate) SetLevel(i int) *FileCreate {
+	fc.mutation.SetLevel(i)
 	return fc
 }
 
@@ -188,7 +188,7 @@ func (fc *FileCreate) createSpec() (*File, *sqlgraph.CreateSpec) {
 		_node.ParentDirID = value
 	}
 	if value, ok := fc.mutation.Level(); ok {
-		_spec.SetField(file.FieldLevel, field.TypeUint64, value)
+		_spec.SetField(file.FieldLevel, field.TypeInt, value)
 		_node.Level = value
 	}
 	if value, ok := fc.mutation.Hash(); ok {

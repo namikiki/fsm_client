@@ -13,7 +13,7 @@ var (
 		{Name: "id", Type: field.TypeString},
 		{Name: "sync_id", Type: field.TypeString},
 		{Name: "dir", Type: field.TypeString},
-		{Name: "level", Type: field.TypeUint64},
+		{Name: "level", Type: field.TypeInt},
 		{Name: "deleted", Type: field.TypeBool},
 		{Name: "create_time", Type: field.TypeInt64},
 		{Name: "mod_time", Type: field.TypeInt64},
@@ -30,7 +30,7 @@ var (
 		{Name: "sync_id", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "parent_dir_id", Type: field.TypeString},
-		{Name: "level", Type: field.TypeUint64},
+		{Name: "level", Type: field.TypeInt},
 		{Name: "hash", Type: field.TypeString},
 		{Name: "size", Type: field.TypeInt64},
 		{Name: "deleted", Type: field.TypeBool},
@@ -51,9 +51,8 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "root_dir", Type: field.TypeString},
 		{Name: "ignore", Type: field.TypeBool},
-		{Name: "deleted", Type: field.TypeBool},
-		{Name: "status", Type: field.TypeString},
 		{Name: "create_time", Type: field.TypeInt64},
+		{Name: "status", Type: field.TypeString},
 	}
 	// SyncTasksTable holds the schema information for the "sync_tasks" table.
 	SyncTasksTable = &schema.Table{

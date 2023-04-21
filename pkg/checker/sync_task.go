@@ -1,374 +1,127 @@
 package checker
 
 import (
-	"fmt"
 	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
-	"fsm_client/pkg/database"
 	"fsm_client/pkg/ent"
 )
 
 func (c *Checker) GetSyncTaskChange() map[string]string {
-	var task []ent.SyncTask
-	c.DB.Find(&task)
+	syncCheckTask := make(map[string]string)
+	localSyncMap := make(map[string]ent.SyncTask)
+	var localSyncTask []ent.SyncTask
 
-	localSyncDelete := make(map[string]string)
-	localSync := make(map[string]string)
-	cloudSync := make(map[string]string)
+	c.DB.Find(&localSyncTask)
 
-	for _, t := range task {
-		localSync[t.ID] = t.RootDir
-		_, err := os.Stat(t.RootDir)
-		if err != nil {
-			localSyncDelete[t.ID] = t.RootDir
+	for _, t := range localSyncTask {
+		localSyncMap[t.ID] = t
+
+		if t.Status != "delete" && t.Status != "created" {
+			if _, err := os.Stat(t.RootDir); err != nil {
+				log.Println("本地删除", t.ID, t.RootDir)
+				t.Status = "delete"
+				c.DB.Save(&t)
+			}
 		}
+
 	}
 
-	syncTasks, err := c.Client.SyncTaskGetAll()
+	cloudSyncTask, err := c.Client.SyncTaskGetAll()
 	if err != nil {
 		log.Println(err)
 	}
-	for _, s := range syncTasks {
-		cloudSync[s.ID] = s.RootDir
-	}
 
-	cloudDelete := make(map[string]string)
-	cloudAdd := make(map[string]string)
-
-	for key := range localSync {
-		if _, ok := cloudSync[key]; !ok {
-			cloudDelete[key] = localSync[key]
+	for i, s := range cloudSyncTask {
+		if _, ok := localSyncMap[s.ID]; !ok {
+			log.Println("云端新增", s.ID, s.RootDir)
+			cloudSyncTask[i].Status = "created"
+			c.DB.Create(&cloudSyncTask[i])
+			continue
 		}
+
+		delete(localSyncMap, s.ID)
 	}
 
-	for key := range cloudSync {
-		if _, ok := localSync[key]; !ok {
-			cloudAdd[key] = cloudSync[key]
-		}
+	for _, value := range localSyncMap {
+		//本地文件和记录删除
+		log.Println("云端删除", value.ID, value.RootDir)
+		value.Status = "delete"
+		c.DB.Save(&value)
 	}
 
-	log.Println("add")
-	for i, i2 := range cloudAdd {
-		log.Println(i, i2)
+	c.DB.Where("status IN ?", []string{"sync", "syncing", "update"}).Find(&localSyncTask)
+	for _, t := range localSyncTask {
+		log.Println("本地正常同步", t.ID, t.RootDir)
+		syncCheckTask[t.ID] = t.RootDir
 	}
 
-	log.Println("delete")
-	for i, i2 := range cloudDelete {
-		log.Println(i, i2)
-	}
-
-	return localSync
+	return syncCheckTask
 }
 
-func (c *Checker) GetDriveFileAndDir(syncTasks map[string]string) {
+func (c *Checker) GetDriveFileAndDir(syncTasks map[string]string) error {
+	isWindows := runtime.GOOS == "windows"
 
 	for syncID, rootDir := range syncTasks {
+
+		log.Println("扫描本地文件夹", rootDir)
 		rootPathLen := len(rootDir)
 
-		filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
-			path = path[rootPathLen:]
+		if err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+
+			absPath := path[rootPathLen:]
+			if isWindows {
+				absPath = filepath.ToSlash(absPath)
+			}
 
 			if d.IsDir() {
 				dir := ent.Dir{
 					SyncID:     syncID,
-					Dir:        path + "/", // todo Split
-					Level:      uint64(len(strings.Split(path, "/"))),
+					Dir:        absPath,
+					Level:      len(strings.Split(absPath, "/")),
 					Deleted:    false,
 					CreateTime: time.Now().Unix(),
 					ModTime:    time.Now().Unix(),
 				}
 
-				c.insertDir(DriveDir, dir)
-				return err
+				return c.insertDir(DriveDir, dir)
 			}
 
-			level := len(strings.Split(path, "/"))
-			suffix := strings.TrimSuffix(path, d.Name())
-			//var dir ent.Dir
-			//c.MemDB.Where("dir = ? and level = ?", suffix, level-1).Find(&dir)
-
 			info, _ := d.Info()
+			level := len(strings.Split(absPath, "/")) - 1
+			suffix := strings.TrimSuffix(absPath, "/"+info.Name())
+
+			//if h.DB.Where("dir= ? and level = ?", suffix, level).Find(&dir); dir.ID == "" {
+			//	return errors.New(" not found dir")
+			//}
+
 			file := ent.File{
 				SyncID:      syncID,
 				Name:        d.Name(),
 				ParentDirID: suffix,
-				Level:       uint64(level),
+				Level:       level,
 				Size:        info.Size(),
 				Deleted:     false,
 				CreateTime:  time.Now().Unix(),
 				ModTime:     info.ModTime().Unix(),
 			}
 
+			//fileIO, err := os.Open(path)
+			//if err := h.HttpClient.FileCreate(&file, fileIO); err != nil {
+			//	return err
+			//}
 			c.insertFile(DriveFile, file)
 			return err
-		})
 
-	}
-
-}
-
-func (c *Checker) GetDirChange(syncTask map[string]string) error {
-	var dirs []ent.Dir
-	c.DB.Find(&dirs)
-	c.insertDirs(DBDir, dirs)
-
-	var dirDelete, dirAdd []ent.Dir
-
-	GetDirAddSQL := fmt.Sprintf(GetDirChange, DBDir, DBDir, DriveDir, DBDir, DriveDir, DBDir, DriveDir, DriveDir)
-	if err := c.MemDB.Select(&dirDelete, GetDirAddSQL); err != nil {
-		return err
-	}
-
-	GetDirDeleteSQL := fmt.Sprintf(GetDirChange, DriveDir, DriveDir, DBDir, DriveDir, DBDir, DriveDir, DBDir, DBDir)
-	if err := c.MemDB.Select(&dirAdd, GetDirDeleteSQL); err != nil {
-		return err
-	}
-
-	log.Println("local client diradd", dirAdd)
-	log.Println("local client dirdelete", dirDelete)
-
-	//todo 屏蔽
-	for _, dir := range dirDelete {
-
-		err := c.Client.DirDelete(dir)
-		if err != nil {
-			log.Println(err)
-		}
-
-		if err := os.RemoveAll(filepath.Join(syncTask[dir.SyncID], dir.Dir)); err != nil {
-			return err
-		}
-		c.DB.Delete(&dir)
-	}
-
-	for _, dir := range dirAdd {
-
-		if err := c.Client.DirCreate(&dir); err != nil {
-			return err
-		}
-
-		if err := os.MkdirAll(filepath.Join(syncTask[dir.SyncID], dir.Dir), os.ModePerm); err != nil {
-			return err
-		}
-		c.DB.Create(&dir)
-	}
-
-	ch := make(chan int)
-
-	go func() {
-		for k := range syncTask {
-			cloud, err := c.Client.GetAllDirBySyncID(k)
-			err = c.insertDirs(cloudDir, cloud)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-
-		ch <- 1
-	}()
-
-	database.ResetDirTable(c.MemDB)
-	c.DB.Find(&dirs)
-	c.insertDirs(DBDir, dirs)
-
-	<-ch
-
-	GetCloudDirAddSQL := fmt.Sprintf(GetDirChange, DBDir, DBDir, cloudDir, DBDir, cloudDir, DBDir, cloudDir, cloudDir)
-	if err := c.MemDB.Select(&dirDelete, GetCloudDirAddSQL); err != nil {
-		return err
-	}
-
-	GetCloudDirDeleteSQL := fmt.Sprintf(GetDirChange, cloudDir, cloudDir, DBDir, cloudDir, DBDir, cloudDir, DBDir, DBDir)
-	if err := c.MemDB.Select(&dirAdd, GetCloudDirDeleteSQL); err != nil {
-		return err
-	}
-
-	log.Println("cloud  diradd", dirAdd)
-	log.Println("cloud dirdelete", dirDelete)
-
-	//todo 屏蔽
-	for _, dir := range dirDelete {
-
-		err := c.Client.DirDelete(dir)
-		if err != nil {
-			log.Println(err)
-		}
-
-		if err := os.RemoveAll(filepath.Join(syncTask[dir.SyncID], dir.Dir)); err != nil {
-			return err
-		}
-		c.DB.Delete(&dir)
-	}
-
-	for _, dir := range dirAdd {
-
-		if err := c.Client.DirCreate(&dir); err != nil {
-			return err
-		}
-
-		if err := os.MkdirAll(filepath.Join(syncTask[dir.SyncID], dir.Dir), os.ModePerm); err != nil {
-			return err
-		}
-		c.DB.Create(&dir)
-	}
-
-	return nil
-}
-
-func (c *Checker) GetFileChange(syncTask map[string]string) error {
-	var files []ent.File
-	c.DB.Find(&files)
-	c.insertFiles(DBFile, files)
-
-	var fileAdd, fileDelete, fileUpdate []ent.File
-	if err := c.MemDB.Select(&fileDelete, GetFileChange(DBFile, DriveFile)); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	if err := c.MemDB.Select(&fileAdd, GetFileChange(DriveFile, DBFile)); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	if err := c.MemDB.Select(&fileUpdate, getFileUpdate(DBFile, DriveFile)); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	log.Println("local file add", fileAdd)
-	log.Println("local file delete", fileDelete)
-	log.Println("local file update", fileUpdate)
-
-	for _, file := range fileAdd {
-		var dir ent.Dir
-		c.DB.Where("sync_id = ? and dir = ? ", file.SyncID, file.ParentDirID).Find(&dir)
-		file.ParentDirID = dir.ID
-		fileIO, err := os.Open(syncTask[file.SyncID] + dir.Dir + file.Name)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-		err = c.Client.FileCreate(&file, fileIO)
-		if err != nil {
-			return err
-		}
-		c.DB.Create(&file)
-	}
-
-	for _, file := range fileDelete {
-		if err := c.Client.FileDelete(file); err != nil {
-			return err
-		}
-		c.DB.Delete(&file)
-	}
-
-	for _, file := range fileUpdate {
-		var dir ent.Dir
-		c.DB.Where("sync_id = ? and id = ? ", file.SyncID, file.ParentDirID).Find(&dir)
-
-		fileIO, err := os.Open(syncTask[file.SyncID] + dir.Dir + file.Name)
-
-		stat, err := fileIO.Stat()
-		file.Size = stat.Size()
-		file.ModTime = stat.ModTime().Unix()
-
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-		err = c.Client.FileUpdate(&file, fileIO)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-		log.Println(file)
-
-		c.DB.Save(&file)
-	}
-
-	ch := make(chan int)
-
-	go func() {
-		for k := range syncTask {
-			cloud, err := c.Client.GetAllFileBySyncID(k)
-			err = c.insertFiles(cloudFile, cloud)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-
-		ch <- 1
-	}()
-
-	database.ResetFileTable(c.MemDB)
-	c.DB.Find(&files)
-	c.insertFiles(DBFile, files)
-
-	<-ch
-
-	if err := c.MemDB.Select(&fileDelete, GetFileChange(DBFile, cloudFile)); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	if err := c.MemDB.Select(&fileAdd, GetFileChange(cloudFile, DBFile)); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	if err := c.MemDB.Select(&fileUpdate, getFileUpdate(cloudFile, DBFile)); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	log.Println("cloud file add", fileAdd)
-	log.Println("cloud file delete", fileDelete)
-	log.Println("cloud file update", fileUpdate)
-
-	for _, file := range fileAdd {
-		var dir ent.Dir
-		c.DB.Where("sync_id = ? and id = ? ", file.SyncID, file.ParentDirID).Find(&dir)
-
-		err := c.Handle.FileWrite(file, dir.Dir, syncTask[file.SyncID])
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-	}
-
-	for _, file := range fileDelete {
-
-		var dir ent.Dir
-		c.DB.Where("sync_id = ? and id = ? ", file.SyncID, file.ParentDirID).Find(&dir)
-		err := c.Handle.FileDelete(file, dir.Dir, syncTask[file.SyncID])
-
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-		if err := c.Client.FileDelete(file); err != nil {
-			return err
-		}
-		c.DB.Delete(&file)
-	}
-
-	for _, file := range fileUpdate {
-		var dir ent.Dir
-		c.DB.Where("sync_id = ? and id = ? ", file.SyncID, file.ParentDirID).Find(&dir)
-
-		err := c.Handle.FileWrite(file, dir.Dir, syncTask[file.SyncID])
-		if err != nil {
-			log.Println(err)
+		}); err != nil {
 			return err
 		}
 	}

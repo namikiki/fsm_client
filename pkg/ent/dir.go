@@ -16,17 +16,17 @@ type Dir struct {
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// SyncID holds the value of the "sync_id" field.
-	SyncID string `json:"sync_id,omitempty"`
+	SyncID string `json:"sync_id,omitempty" db:"sync_id" `
 	// Dir holds the value of the "dir" field.
 	Dir string `json:"dir,omitempty"`
 	// Level holds the value of the "level" field.
-	Level uint64 `json:"level,omitempty"`
+	Level int `json:"level,omitempty"`
 	// Deleted holds the value of the "deleted" field.
 	Deleted bool `json:"deleted,omitempty"`
 	// CreateTime holds the value of the "create_time" field.
-	CreateTime int64 `json:"create_time,omitempty"`
+	CreateTime int64 `json:"create_time,omitempty" db:"create_time" `
 	// ModTime holds the value of the "mod_time" field.
-	ModTime int64 `json:"mod_time,omitempty"`
+	ModTime int64 `json:"mod_time,omitempty" db:"mod_time" `
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -77,7 +77,7 @@ func (d *Dir) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field level", values[i])
 			} else if value.Valid {
-				d.Level = uint64(value.Int64)
+				d.Level = int(value.Int64)
 			}
 		case dir.FieldDeleted:
 			if value, ok := values[i].(*sql.NullBool); !ok {

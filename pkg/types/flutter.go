@@ -19,3 +19,7 @@ type DeleteSyncTask struct {
 	DelLocal bool   `json:"del_local"`
 	DelCloud bool   `json:"del_cloud"`
 }
+
+type PauseSyncTask struct {
+	ID string `json:"id"`
+}

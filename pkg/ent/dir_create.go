@@ -32,8 +32,8 @@ func (dc *DirCreate) SetDir(s string) *DirCreate {
 }
 
 // SetLevel sets the "level" field.
-func (dc *DirCreate) SetLevel(u uint64) *DirCreate {
-	dc.mutation.SetLevel(u)
+func (dc *DirCreate) SetLevel(i int) *DirCreate {
+	dc.mutation.SetLevel(i)
 	return dc
 }
 
@@ -157,7 +157,7 @@ func (dc *DirCreate) createSpec() (*Dir, *sqlgraph.CreateSpec) {
 		_node.Dir = value
 	}
 	if value, ok := dc.mutation.Level(); ok {
-		_spec.SetField(dir.FieldLevel, field.TypeUint64, value)
+		_spec.SetField(dir.FieldLevel, field.TypeInt, value)
 		_node.Level = value
 	}
 	if value, ok := dc.mutation.Deleted(); ok {

@@ -11,7 +11,6 @@ func NewSyncTask() ent.SyncTask {
 		Type:       "two",
 		Name:       "mediawa",
 		RootDir:    "/dawdawdaw",
-		Deleted:    false,
 		CreateTime: time.Now().Unix(),
 	}
 }

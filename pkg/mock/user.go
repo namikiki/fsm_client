@@ -1,22 +1,8 @@
 package mock
 
 import (
-	"time"
-
-	"fsm_client/pkg/ent"
 	"fsm_client/pkg/types"
 )
-
-func NewUser() ent.User {
-	return ent.User{
-		ParentID:   "",
-		UserID:     "",
-		Name:       "",
-		Deleted:    false,
-		CreateTime: time.Time{},
-		ModTime:    time.Time{},
-	}
-}
 
 func NewLogin() types.UserLoginReq {
 	return types.UserLoginReq{

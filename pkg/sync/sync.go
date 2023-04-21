@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
-
-	//"time"
 
 	"fsm_client/pkg/ent"
 	"fsm_client/pkg/handle"
@@ -118,7 +117,6 @@ func (s *Syncer) ListenCloudDataChanges() error {
 
 			} else {
 				synctask.Status = "delete"
-				synctask.Deleted = true
 				s.WatchManger.RemoveNotifyChannel <- synctask.ID
 				delete(s.SyncTask, synctask.ID)
 			}
@@ -144,7 +142,6 @@ func (s *Syncer) CreateSyncTask(st types.NewSyncTask) error {
 		Type:       st.Type,
 		Name:       st.Name,
 		RootDir:    st.Path,
-		Deleted:    false,
 		Ignore:     st.Ignore,
 		CreateTime: time.Now().Unix(),
 	}
@@ -162,9 +159,12 @@ func (s *Syncer) CreateSyncTask(st types.NewSyncTask) error {
 	}
 
 	//todo 添加任务时，应该在全量备份完成后 通知其他客户端添加了同步任务
+	task.RootDir = filepath.ToSlash(st.Path)
 	if err := s.httpClient.SyncTaskCreate(&task); err != nil {
 		return err
 	}
+
+	task.RootDir = st.Path
 	task.Status = "syncing"
 	s.DB.Create(&task)
 
@@ -185,59 +185,12 @@ func (s *Syncer) CreateSyncTask(st types.NewSyncTask) error {
 	return err
 }
 
-func (s *Syncer) DeleteSyncTask(del types.DeleteSyncTask) error {
-	s.WatchManger.RemoveNotifyChannel <- del.ID
-
-	var sync ent.SyncTask
-	s.DB.Where("id=?", del.ID).Find(&sync)
-	//todo 添加延迟
-
-	delete(s.SyncTask, sync.ID)
-
-	if del.DelLocal {
-		sync.Deleted = true
-		sync.Status = "delete"
-		s.DB.Save(&sync)
-		return s.Handle.DeleteAllFileByDir(sync.RootDir)
-	}
-
-	if del.DelCloud {
-		s.DB.Delete(&sync)
-		return s.httpClient.SyncTaskDelete(del.ID)
-	}
-
-	return nil
-}
-
-// todo  增加暂停时长
-func (s *Syncer) PauseAndContinueTask(syncID string) error {
-	var task ent.SyncTask
-	s.DB.Where("id = ?", syncID).Find(&task)
-
-	if task.Status == "pause" {
-		watch, err := fsn.NewWatch(task.ID, task.RootDir, task.Ignore)
-		if err != nil {
-			return err
-		}
-
-		task.Status = "sync"
-		s.SyncTask[task.ID] = task.RootDir
-		s.WatchManger.AddNotifyChannel <- watch
-	}
-
-	if task.Status == "sync" || task.Status == "syncing" {
-		task.Status = "pause"
-		s.WatchManger.RemoveNotifyChannel <- syncID
-		delete(s.SyncTask, syncID)
-	}
-
-	s.DB.Save(&task)
-	return nil
-}
-
 func (s *Syncer) RecoverTask(st types.RecSyncTask) error {
 	var synctask ent.SyncTask
-	s.DB.Where("id = ?", st.ID).Find(&synctask)
+
+	if s.DB.Where("id = ?", st.ID).Find(&synctask); synctask.Status != "created" {
+		return errors.New("该任务不可被恢复同步状态")
+	}
 
 	synctask.Name = st.Name
 	synctask.RootDir = st.Path
@@ -261,6 +214,61 @@ func (s *Syncer) RecoverTask(st types.RecSyncTask) error {
 	s.DB.Save(&synctask)
 
 	return err
+}
+
+// PauseAndContinueTask todo  增加暂停时长
+func (s *Syncer) PauseAndContinueTask(syncID string) error {
+	var task ent.SyncTask
+	if s.DB.Where("id = ?", syncID).Find(&task); task.ID == "" {
+		return errors.New("未找到")
+	}
+
+	if task.Status == "pause" {
+		watch, err := fsn.NewWatch(task.ID, task.RootDir, task.Ignore)
+		if err != nil {
+			return err
+		}
+
+		log.Println("重新同步")
+		task.Status = "sync"
+		s.SyncTask[task.ID] = task.RootDir
+		s.WatchManger.AddNotifyChannel <- watch
+	} else if task.Status == "sync" || task.Status == "syncing" {
+		task.Status = "pause"
+		s.WatchManger.RemoveNotifyChannel <- syncID
+		delete(s.SyncTask, syncID)
+	}
+
+	s.DB.Save(&task)
+	return nil
+}
+
+func (s *Syncer) DeleteSyncTask(del types.DeleteSyncTask) error {
+
+	var sync ent.SyncTask
+	if s.DB.Where("id = ?", del.ID).Find(&sync); sync.ID == "" {
+		return errors.New("未找到")
+	}
+
+	//todo 添加延迟 保证在监视者被完全删除 或者 让 RemoveNotifyChannel 返回信号
+	s.WatchManger.RemoveNotifyChannel <- sync.ID
+	delete(s.SyncTask, sync.ID)
+
+	if del.DelCloud {
+		s.DB.Delete(&sync)
+		if err := s.httpClient.SyncTaskDelete(del.ID); err != nil {
+			return err
+		}
+	}
+
+	sync.Status = "delete"
+	s.DB.Save(&sync)
+
+	if del.DelLocal {
+		return s.Handle.DeleteAllFileByDir(sync.RootDir)
+	}
+
+	return nil
 }
 
 //func (s *Syncer) CancelSyncTask(syncID string) error {

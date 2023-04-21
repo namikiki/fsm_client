@@ -69,7 +69,7 @@ func ParentDirID(v string) predicate.File {
 }
 
 // Level applies equality check predicate on the "level" field. It's identical to LevelEQ.
-func Level(v uint64) predicate.File {
+func Level(v int) predicate.File {
 	return predicate.File(sql.FieldEQ(FieldLevel, v))
 }
 
@@ -294,42 +294,42 @@ func ParentDirIDContainsFold(v string) predicate.File {
 }
 
 // LevelEQ applies the EQ predicate on the "level" field.
-func LevelEQ(v uint64) predicate.File {
+func LevelEQ(v int) predicate.File {
 	return predicate.File(sql.FieldEQ(FieldLevel, v))
 }
 
 // LevelNEQ applies the NEQ predicate on the "level" field.
-func LevelNEQ(v uint64) predicate.File {
+func LevelNEQ(v int) predicate.File {
 	return predicate.File(sql.FieldNEQ(FieldLevel, v))
 }
 
 // LevelIn applies the In predicate on the "level" field.
-func LevelIn(vs ...uint64) predicate.File {
+func LevelIn(vs ...int) predicate.File {
 	return predicate.File(sql.FieldIn(FieldLevel, vs...))
 }
 
 // LevelNotIn applies the NotIn predicate on the "level" field.
-func LevelNotIn(vs ...uint64) predicate.File {
+func LevelNotIn(vs ...int) predicate.File {
 	return predicate.File(sql.FieldNotIn(FieldLevel, vs...))
 }
 
 // LevelGT applies the GT predicate on the "level" field.
-func LevelGT(v uint64) predicate.File {
+func LevelGT(v int) predicate.File {
 	return predicate.File(sql.FieldGT(FieldLevel, v))
 }
 
 // LevelGTE applies the GTE predicate on the "level" field.
-func LevelGTE(v uint64) predicate.File {
+func LevelGTE(v int) predicate.File {
 	return predicate.File(sql.FieldGTE(FieldLevel, v))
 }
 
 // LevelLT applies the LT predicate on the "level" field.
-func LevelLT(v uint64) predicate.File {
+func LevelLT(v int) predicate.File {
 	return predicate.File(sql.FieldLT(FieldLevel, v))
 }
 
 // LevelLTE applies the LTE predicate on the "level" field.
-func LevelLTE(v uint64) predicate.File {
+func LevelLTE(v int) predicate.File {
 	return predicate.File(sql.FieldLTE(FieldLevel, v))
 }
 

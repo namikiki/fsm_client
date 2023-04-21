@@ -44,7 +44,7 @@ type Client struct {
 
 func NewClient(conf *types.Config) *Client { // todo
 	log.Println("clientID = ", conf.Device.ClientID)
-	ch := make(chan int)
+	ch := make(chan int, 5)
 
 	return &Client{
 		HttpClient:   nil,

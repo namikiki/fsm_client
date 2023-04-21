@@ -16,13 +16,13 @@ type File struct {
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// SyncID holds the value of the "sync_id" field.
-	SyncID string `json:"sync_id,omitempty"`
+	SyncID string `json:"sync_id,omitempty" db:"sync_id" `
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// ParentDirID holds the value of the "parent_dir_id" field.
-	ParentDirID string `json:"parent_dir_id,omitempty"`
+	ParentDirID string `json:"parent_dir_id,omitempty" db:"parent_dir_id" `
 	// Level holds the value of the "level" field.
-	Level uint64 `json:"level,omitempty"`
+	Level int `json:"level,omitempty"`
 	// Hash holds the value of the "hash" field.
 	Hash string `json:"hash,omitempty"`
 	// Size holds the value of the "size" field.
@@ -30,9 +30,9 @@ type File struct {
 	// Deleted holds the value of the "deleted" field.
 	Deleted bool `json:"deleted,omitempty"`
 	// CreateTime holds the value of the "create_time" field.
-	CreateTime int64 `json:"create_time,omitempty"`
+	CreateTime int64 `json:"create_time,omitempty" db:"create_time" `
 	// ModTime holds the value of the "mod_time" field.
-	ModTime int64 `json:"mod_time,omitempty"`
+	ModTime int64 `json:"mod_time,omitempty" db:"mod_time" `
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -89,7 +89,7 @@ func (f *File) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field level", values[i])
 			} else if value.Valid {
-				f.Level = uint64(value.Int64)
+				f.Level = int(value.Int64)
 			}
 		case file.FieldHash:
 			if value, ok := values[i].(*sql.NullString); !ok {

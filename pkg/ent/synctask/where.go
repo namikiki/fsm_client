@@ -78,19 +78,14 @@ func Ignore(v bool) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldEQ(FieldIgnore, v))
 }
 
-// Deleted applies equality check predicate on the "deleted" field. It's identical to DeletedEQ.
-func Deleted(v bool) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldEQ(FieldDeleted, v))
+// CreateTime applies equality check predicate on the "create_time" field. It's identical to CreateTimeEQ.
+func CreateTime(v int64) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldEQ(FieldCreateTime, v))
 }
 
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldEQ(FieldStatus, v))
-}
-
-// CreateTime applies equality check predicate on the "create_time" field. It's identical to CreateTimeEQ.
-func CreateTime(v int64) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldEQ(FieldCreateTime, v))
 }
 
 // UserIDEQ applies the EQ predicate on the "user_id" field.
@@ -363,14 +358,44 @@ func IgnoreNEQ(v bool) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldNEQ(FieldIgnore, v))
 }
 
-// DeletedEQ applies the EQ predicate on the "deleted" field.
-func DeletedEQ(v bool) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldEQ(FieldDeleted, v))
+// CreateTimeEQ applies the EQ predicate on the "create_time" field.
+func CreateTimeEQ(v int64) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldEQ(FieldCreateTime, v))
 }
 
-// DeletedNEQ applies the NEQ predicate on the "deleted" field.
-func DeletedNEQ(v bool) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldNEQ(FieldDeleted, v))
+// CreateTimeNEQ applies the NEQ predicate on the "create_time" field.
+func CreateTimeNEQ(v int64) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldNEQ(FieldCreateTime, v))
+}
+
+// CreateTimeIn applies the In predicate on the "create_time" field.
+func CreateTimeIn(vs ...int64) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldIn(FieldCreateTime, vs...))
+}
+
+// CreateTimeNotIn applies the NotIn predicate on the "create_time" field.
+func CreateTimeNotIn(vs ...int64) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldNotIn(FieldCreateTime, vs...))
+}
+
+// CreateTimeGT applies the GT predicate on the "create_time" field.
+func CreateTimeGT(v int64) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldGT(FieldCreateTime, v))
+}
+
+// CreateTimeGTE applies the GTE predicate on the "create_time" field.
+func CreateTimeGTE(v int64) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldGTE(FieldCreateTime, v))
+}
+
+// CreateTimeLT applies the LT predicate on the "create_time" field.
+func CreateTimeLT(v int64) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldLT(FieldCreateTime, v))
+}
+
+// CreateTimeLTE applies the LTE predicate on the "create_time" field.
+func CreateTimeLTE(v int64) predicate.SyncTask {
+	return predicate.SyncTask(sql.FieldLTE(FieldCreateTime, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
@@ -436,46 +461,6 @@ func StatusEqualFold(v string) predicate.SyncTask {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.SyncTask {
 	return predicate.SyncTask(sql.FieldContainsFold(FieldStatus, v))
-}
-
-// CreateTimeEQ applies the EQ predicate on the "create_time" field.
-func CreateTimeEQ(v int64) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldEQ(FieldCreateTime, v))
-}
-
-// CreateTimeNEQ applies the NEQ predicate on the "create_time" field.
-func CreateTimeNEQ(v int64) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldNEQ(FieldCreateTime, v))
-}
-
-// CreateTimeIn applies the In predicate on the "create_time" field.
-func CreateTimeIn(vs ...int64) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldIn(FieldCreateTime, vs...))
-}
-
-// CreateTimeNotIn applies the NotIn predicate on the "create_time" field.
-func CreateTimeNotIn(vs ...int64) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldNotIn(FieldCreateTime, vs...))
-}
-
-// CreateTimeGT applies the GT predicate on the "create_time" field.
-func CreateTimeGT(v int64) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldGT(FieldCreateTime, v))
-}
-
-// CreateTimeGTE applies the GTE predicate on the "create_time" field.
-func CreateTimeGTE(v int64) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldGTE(FieldCreateTime, v))
-}
-
-// CreateTimeLT applies the LT predicate on the "create_time" field.
-func CreateTimeLT(v int64) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldLT(FieldCreateTime, v))
-}
-
-// CreateTimeLTE applies the LTE predicate on the "create_time" field.
-func CreateTimeLTE(v int64) predicate.SyncTask {
-	return predicate.SyncTask(sql.FieldLTE(FieldCreateTime, v))
 }
 
 // And groups predicates with the AND operator between them.

@@ -18,7 +18,7 @@ func (File) Fields() []ent.Field {
 
 		field.String("name"),
 		field.String("parent_dir_id"),
-		field.Uint64("level"),
+		field.Int("level"),
 		field.String("hash"),
 		field.Int64("size"),
 

@@ -46,15 +46,15 @@ func (fu *FileUpdate) SetParentDirID(s string) *FileUpdate {
 }
 
 // SetLevel sets the "level" field.
-func (fu *FileUpdate) SetLevel(u uint64) *FileUpdate {
+func (fu *FileUpdate) SetLevel(i int) *FileUpdate {
 	fu.mutation.ResetLevel()
-	fu.mutation.SetLevel(u)
+	fu.mutation.SetLevel(i)
 	return fu
 }
 
-// AddLevel adds u to the "level" field.
-func (fu *FileUpdate) AddLevel(u int64) *FileUpdate {
-	fu.mutation.AddLevel(u)
+// AddLevel adds i to the "level" field.
+func (fu *FileUpdate) AddLevel(i int) *FileUpdate {
+	fu.mutation.AddLevel(i)
 	return fu
 }
 
@@ -160,10 +160,10 @@ func (fu *FileUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.SetField(file.FieldParentDirID, field.TypeString, value)
 	}
 	if value, ok := fu.mutation.Level(); ok {
-		_spec.SetField(file.FieldLevel, field.TypeUint64, value)
+		_spec.SetField(file.FieldLevel, field.TypeInt, value)
 	}
 	if value, ok := fu.mutation.AddedLevel(); ok {
-		_spec.AddField(file.FieldLevel, field.TypeUint64, value)
+		_spec.AddField(file.FieldLevel, field.TypeInt, value)
 	}
 	if value, ok := fu.mutation.Hash(); ok {
 		_spec.SetField(file.FieldHash, field.TypeString, value)
@@ -228,15 +228,15 @@ func (fuo *FileUpdateOne) SetParentDirID(s string) *FileUpdateOne {
 }
 
 // SetLevel sets the "level" field.
-func (fuo *FileUpdateOne) SetLevel(u uint64) *FileUpdateOne {
+func (fuo *FileUpdateOne) SetLevel(i int) *FileUpdateOne {
 	fuo.mutation.ResetLevel()
-	fuo.mutation.SetLevel(u)
+	fuo.mutation.SetLevel(i)
 	return fuo
 }
 
-// AddLevel adds u to the "level" field.
-func (fuo *FileUpdateOne) AddLevel(u int64) *FileUpdateOne {
-	fuo.mutation.AddLevel(u)
+// AddLevel adds i to the "level" field.
+func (fuo *FileUpdateOne) AddLevel(i int) *FileUpdateOne {
+	fuo.mutation.AddLevel(i)
 	return fuo
 }
 
@@ -372,10 +372,10 @@ func (fuo *FileUpdateOne) sqlSave(ctx context.Context) (_node *File, err error) 
 		_spec.SetField(file.FieldParentDirID, field.TypeString, value)
 	}
 	if value, ok := fuo.mutation.Level(); ok {
-		_spec.SetField(file.FieldLevel, field.TypeUint64, value)
+		_spec.SetField(file.FieldLevel, field.TypeInt, value)
 	}
 	if value, ok := fuo.mutation.AddedLevel(); ok {
-		_spec.AddField(file.FieldLevel, field.TypeUint64, value)
+		_spec.AddField(file.FieldLevel, field.TypeInt, value)
 	}
 	if value, ok := fuo.mutation.Hash(); ok {
 		_spec.SetField(file.FieldHash, field.TypeString, value)

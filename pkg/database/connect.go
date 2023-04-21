@@ -61,14 +61,13 @@ func ResetFileTable(db *sqlx.DB) {
 }
 
 func NewSqliteMemoryDB() *sqlx.DB {
-	//
 	db, err := sqlx.Connect("sqlite3", "file::memory:?cache=shared")
+	//db, err := sqlx.Connect("sqlite3", "file:123.db")
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	memDBMigrate(db)
-	ResetDirTable(db)
 	return db
 }
 

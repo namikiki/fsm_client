@@ -82,6 +82,7 @@ func (c *Client) loginRes(resp *http.Response) error {
 	c.HttpClient = newHttpClient(lr.Token, c.Conf.Device.ClientID)
 	c.Ch <- 1
 	c.Ch <- 1
+	c.Ch <- 1
 	return nil
 }
 
